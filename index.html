@@ -1393,8 +1393,6 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
   return (
     <div style={{ height: "100vh", display: "flex", flexDirection: "column", fontFamily: "'Plus Jakarta Sans',sans-serif", background: T.bg }}>
       <OfflineBanner online={online} pending={pendingCount} onSync={onSync} syncing={syncing} />
-      {/* ViewAs bar — only shown when logged in as admin */}
-      {onSetViewAs && <ViewAsBar viewAs={viewAs} setViewAs={onSetViewAs} />}
       {showComercialPanel && (
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 999, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
           <div style={{ background: T.white, borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 520, maxHeight: "85vh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
@@ -1409,60 +1407,62 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
         </div>
       )}
       {/* Top bar */}
-      <div style={{ background: T.navy, padding: "14px 20px", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "rgba(255,255,255,.1)", border: "none", color: "#fff", width: 36, height: 36, borderRadius: 8, cursor: "pointer", fontSize: 16 }}>☰</button>
+      <div style={{ background: T.navy, padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0, gap: 10 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+          <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "rgba(255,255,255,.1)", border: "none", color: "#fff", width: 32, height: 32, borderRadius: 8, cursor: "pointer", fontSize: 14 }}>☰</button>
+          <img src={LOGO_SRC} alt="Cañaveral" style={{ height: 30, width: 30, borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(255,255,255,.2)" }} />
           <div>
-            <div style={{ color: "#fff", fontSize: 17, fontWeight: 800, display: "flex", alignItems: "center", gap: 10 }}>
-              <img src={LOGO_SRC} alt="Cañaveral" style={{ height: 36, width: 36, borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(255,255,255,.2)" }} />
-              <span style={{ color: "rgba(255,255,255,.5)", fontWeight: 300 }}>|</span>
-              <span style={{ color: "#fff", fontSize: 14 }}>Control de Mercaderistas</span>
-            </div>
-            <div style={{ color: T.muted, fontSize: 12, display: "flex", alignItems: "center", gap: 6 }}>
-              {isViewer
-                ? <><span style={{ background: "#7c3aed", color: "#fff", borderRadius: 99, padding: "1px 8px", fontSize: 10, fontWeight: 800 }}>👁️ ESPECTADOR</span> {user.nombre}</>
-                : isComercial
-                ? <><span style={{ background: "#0ea5e9", color: "#fff", borderRadius: 99, padding: "1px 8px", fontSize: 10, fontWeight: 800 }}>🏭 COMERCIAL</span> {user.nombre}</>
-                : <>👑 {user.nombre}</>
-              }
+            <div style={{ color: "#fff", fontSize: 14, fontWeight: 800 }}>Control de Mercaderistas</div>
+            <div style={{ color: T.muted, fontSize: 11, display: "flex", alignItems: "center", gap: 6 }}>
+              {isViewer ? <><span style={{ background: "#7c3aed", color: "#fff", borderRadius: 99, padding: "1px 6px", fontSize: 9, fontWeight: 800 }}>👁️ ESPECTADOR</span> {user.nombre}</>
+               : isComercial ? <><span style={{ background: "#0ea5e9", color: "#fff", borderRadius: 99, padding: "1px 6px", fontSize: 9, fontWeight: 800 }}>🏭 COMERCIAL</span> {user.nombre}</>
+               : <>👑 {user.nombre}</>}
               {" · "}
-              <span style={{ display:"flex", alignItems:"center", gap:4 }}>
-                <span style={{ width:7, height:7, borderRadius:"50%", background: online ? "#7dd105" : "#ef4444", display:"inline-block" }}/>
-                <span style={{ fontSize:11 }}>{online ? "En línea" : "Offline"}</span>
+              <span style={{ display:"flex", alignItems:"center", gap:3 }}>
+                <span style={{ width:6, height:6, borderRadius:"50%", background: online ? "#7dd105" : "#ef4444", display:"inline-block" }}/>
+                <span>{online ? "En línea" : "Offline"}</span>
               </span>
-              {lastSyncAt && online && (
-                <span style={{ fontSize: 10, color: T.muted }}>· Sync {fmtTime(lastSyncAt)}</span>
-              )}
             </div>
           </div>
+          {/* ViewAs inline — solo admin */}
+          {onSetViewAs && (
+            <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 8, paddingLeft: 12, borderLeft: "1px solid rgba(255,255,255,.15)" }}>
+              <span style={{ color: "rgba(255,255,255,.4)", fontSize: 10, fontWeight: 700 }}>VER COMO</span>
+              {[["admin","👑"],["viewer","👁️"],["comercial","🏭"],["security","🛡️"]].map(([k,ic]) => (
+                <button key={k} onClick={() => onSetViewAs(k)} style={{
+                  padding: "3px 10px", borderRadius: 99, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700,
+                  background: viewAs === k ? "rgba(125,209,5,.25)" : "rgba(255,255,255,.07)",
+                  color: viewAs === k ? "#7dd105" : "rgba(255,255,255,.4)",
+                }}>{ic} {k.charAt(0).toUpperCase()+k.slice(1)}</button>
+              ))}
+            </div>
+          )}
         </div>
-        <div style={{ display: "flex", gap: 8 }}>
+        <div style={{ display: "flex", gap: 6 }}>
           {!isViewer && !isComercial && (
             <button onClick={() => setShowForm(true)} style={{
-              background: `linear-gradient(135deg, #7dd105 0%, #6bc200 100%)`,
-              border: "none", color: "#05200b", padding: "8px 16px", borderRadius: 8,
-              cursor: "pointer", fontWeight: 800, fontSize: 13,
-              display: "flex", alignItems: "center", gap: 6
+              background: T.brand, border: "none", color: T.navy, padding: "7px 14px", borderRadius: 8,
+              cursor: "pointer", fontWeight: 800, fontSize: 12, display: "flex", alignItems: "center", gap: 5
             }}>+ Nuevo Registro</button>
           )}
           <button onClick={() => setShowExportModal(true)} style={{
             background: "#16a34a", border: "none", color: "#fff",
-            padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13,
-            display: "flex", alignItems: "center", gap: 6
+            padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12,
+            display: "flex", alignItems: "center", gap: 5
           }}>📊 Excel</button>
           {isComercial && (
-            <button onClick={() => setShowComercialPanel(true)} style={{ background: "#0ea5e9", border: "none", color: "#fff", padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13 }}>🏭 Empresas</button>
+            <button onClick={() => setShowComercialPanel(true)} style={{ background: "#0ea5e9", border: "none", color: "#fff", padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>🏭 Empresas</button>
           )}
           {!isViewer && !isComercial && (
-            <button onClick={onOpenPanel} style={{ background: "rgba(255,255,255,.1)", border: "none", color: "#fff", padding: "8px 16px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 13 }}>⚙️ Admin</button>
+            <button onClick={onOpenPanel} style={{ background: "rgba(255,255,255,.1)", border: "none", color: "#fff", padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>⚙️ Admin</button>
           )}
-          <button onClick={onLogout} style={{ background: "rgba(255,255,255,.1)", border: "none", color: T.muted, padding: "8px 14px", borderRadius: 8, cursor: "pointer", fontSize: 13 }}>Salir</button>
+          <button onClick={onLogout} style={{ background: "rgba(255,255,255,.1)", border: "none", color: T.muted, padding: "7px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>Salir</button>
         </div>
       </div>
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        {/* Sidebar */}
-        {sidebarOpen && (
+        {/* Sidebar — oculto en tab Acuerdos */}
+        {sidebarOpen && activeTab !== "acuerdos" && (
           <div style={{ width: 260, background: T.white, borderRight: `1px solid ${T.border}`, padding: 20, overflowY: "auto", flexShrink: 0 }}>
             <div style={{ background: "#05200b", borderRadius: 12, padding: 16, marginBottom: 20, color: "#fff" }}>
               <div style={{ fontSize: 11, color: T.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
