@@ -118,7 +118,7 @@ const GRAPH          = "https://graph.microsoft.com/v1.0";
 // Nombres de listas en SharePoint (se crean solas si no existen)
 const SP_LISTS = {
   "mreg-v1-registros":  "MercaControl_Registros",
-  "mreg-v1-empresas":   "MercaControl_Empresas",
+  "mreg-v1-empresas":   "MercaControl_Proveedors",
   "mreg-v1-sedes":      "MercaControl_Sedes",
   "mreg-v1-admins":     "MercaControl_Admins",
   "mreg-v1-viewers":    "MercaControl_Viewers",
@@ -295,14 +295,14 @@ const SEDES_INIT = [
   "San Pedro","Pradera","Fontibón","Soacha","Zipaquirá"
 ].map((n, i) => ({ id: `s${i+1}`, nombre: `Sede ${n}`, activa: true }));
 
-const EMPRESAS_INIT = [
+const PROVEEDORS_INIT = [
   "Distribuidora ABC","Comercial XYZ","Proveedora Sur","Industrias Norte",
   "Grupo Comercial","Distribuciones Rápidas","Mercados Unidos","Cadena Sur",
   "Logística Express","Suministros del Valle","Proveedor Nacional",
   "Abastecedora Central","Comercio Andino","Red de Distribución","Marca Propia SA",
   "Alianza Comercial","Mayoristas Unidos","Distribuidora Costa",
   "Importaciones Sur","Exportaciones Norte","Comercial Pacífico",
-  "Grupo Empresarial","Cadena de Valor","Soluciones Logísticas",
+  "Grupo Proveedorrial","Cadena de Valor","Soluciones Logísticas",
   "Network Comercial","Plaza Distribuciones","Macro Suministros",
   "Global Trade CO","Distribuidora Elite","Fast Delivery","Mercado Directo",
 ].map((n, i) => ({ id: `e${i+1}`, nombre: n, activa: true }));
@@ -431,9 +431,17 @@ function Spinner() {
 }
 
 // ─── Login Screen (Microsoft 365 real) ────────────────────────────────────────
+// Accesos con PIN (correo + PIN hardcodeado — solo para admins externos)
+const PIN_USERS = [
+  { email: "felipevanegas752@gmail.com", pin: "1903", nombre: "Felipe Vanegas", rol: "admin" },
+];
+
 function LoginScreen({ onLogin, admins, viewers, sedes, guardias, comercials }) {
-  const [loading, setLoading] = useState(false);
-  const [error, setError]     = useState("");
+  const [loading, setLoading]   = useState(false);
+  const [error, setError]       = useState("");
+  const [showPin, setShowPin]   = useState(false);
+  const [pinEmail, setPinEmail] = useState("");
+  const [pinCode, setPinCode]   = useState("");
 
   const resolveAccount = (account) => {
     const email  = account.username?.toLowerCase() || "";
@@ -494,6 +502,14 @@ function LoginScreen({ onLogin, admins, viewers, sedes, guardias, comercials }) 
     setLoading(false);
   };
 
+  const handlePinLogin = () => {
+    setError("");
+    const email = pinEmail.trim().toLowerCase();
+    const user  = PIN_USERS.find(u => u.email === email && u.pin === pinCode.trim());
+    if (!user) { setError("Correo o PIN incorrecto."); return; }
+    onLogin({ id: email, nombre: user.nombre, email, rol: user.rol, sedeId: null });
+  };
+
   return (
     <div style={{ minHeight: "100vh", background: "#05200b", display: "flex", flexDirection: "column", alignItems: "center", justifyContent: "center", padding: 24 }}>
       <div style={{ width: "100%", maxWidth: 420 }}>
@@ -506,28 +522,70 @@ function LoginScreen({ onLogin, admins, viewers, sedes, guardias, comercials }) 
           </p>
         </div>
         <div style={{ background: "#0a2e10", borderRadius: 16, padding: 24, border: `1px solid rgba(255,255,255,.1)` }}>
-          <p style={{ color: T.muted, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 18, textAlign: "center" }}>
-            Inicia sesión con tu cuenta corporativa
-          </p>
-          <button onClick={handleMicrosoftLogin} disabled={loading} style={{
-            width: "100%", padding: "16px", borderRadius: 12, border: "none",
-            background: loading ? "#334155" : T.amber,
-            color: loading ? T.muted : T.navy,
-            fontSize: 15, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer",
-            transition: "all .2s",
-            display: "flex", alignItems: "center", justifyContent: "center", gap: 10
-          }}>
-            {loading ? <Spinner /> : <span style={{ fontSize: 20 }}>⊞</span>}
-            {loading ? "Conectando..." : "Iniciar sesión con Microsoft"}
-          </button>
+
+          {!showPin ? (<>
+            <p style={{ color: T.muted, fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, marginBottom: 18, textAlign: "center" }}>
+              Inicia sesión con tu cuenta corporativa
+            </p>
+            <button onClick={handleMicrosoftLogin} disabled={loading} style={{
+              width: "100%", padding: "16px", borderRadius: 12, border: "none",
+              background: loading ? "#334155" : T.amber,
+              color: loading ? T.muted : T.navy,
+              fontSize: 15, fontWeight: 800, cursor: loading ? "not-allowed" : "pointer",
+              transition: "all .2s",
+              display: "flex", alignItems: "center", justifyContent: "center", gap: 10
+            }}>
+              {loading ? <Spinner /> : <span style={{ fontSize: 20 }}>⊞</span>}
+              {loading ? "Conectando..." : "Iniciar sesión con Microsoft"}
+            </button>
+
+            <div style={{ display: "flex", alignItems: "center", gap: 10, margin: "16px 0" }}>
+              <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,.1)" }} />
+              <span style={{ color: T.muted, fontSize: 11 }}>o</span>
+              <div style={{ flex: 1, height: 1, background: "rgba(255,255,255,.1)" }} />
+            </div>
+
+            <button onClick={() => { setShowPin(true); setError(""); }} style={{
+              width: "100%", padding: "12px", borderRadius: 12, border: `1px solid rgba(255,255,255,.15)`,
+              background: "transparent", color: T.muted, fontSize: 13, fontWeight: 600, cursor: "pointer"
+            }}>
+              🔑 Acceso con correo y PIN
+            </button>
+          </>) : (<>
+            <button onClick={() => { setShowPin(false); setError(""); setPinEmail(""); setPinCode(""); }}
+              style={{ background: "none", border: "none", color: T.muted, cursor: "pointer", fontSize: 12, marginBottom: 14, display: "flex", alignItems: "center", gap: 6 }}>
+              ← Volver
+            </button>
+            <p style={{ color: "#fff", fontWeight: 700, fontSize: 14, marginBottom: 16 }}>Acceso con correo y PIN</p>
+            <input
+              type="email" value={pinEmail} onChange={e => setPinEmail(e.target.value)}
+              placeholder="Tu correo electrónico"
+              style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1px solid rgba(255,255,255,.15)`, background: "rgba(255,255,255,.07)", color: "#fff", fontSize: 14, marginBottom: 10, outline: "none" }}
+            />
+            <input
+              type="password" value={pinCode} onChange={e => setPinCode(e.target.value)}
+              placeholder="PIN de acceso"
+              onKeyDown={e => e.key === "Enter" && handlePinLogin()}
+              style={{ width: "100%", padding: "12px 14px", borderRadius: 10, border: `1px solid rgba(255,255,255,.15)`, background: "rgba(255,255,255,.07)", color: "#fff", fontSize: 14, marginBottom: 14, outline: "none" }}
+            />
+            <button onClick={handlePinLogin} style={{
+              width: "100%", padding: "13px", borderRadius: 12, border: "none",
+              background: T.brand, color: T.navy, fontSize: 14, fontWeight: 800, cursor: "pointer"
+            }}>
+              Entrar
+            </button>
+          </>)}
+
           {error && (
             <div style={{ marginTop: 14, background: "rgba(239,68,68,.1)", border: "1px solid rgba(239,68,68,.3)", borderRadius: 8, padding: "10px 14px", color: "#fca5a5", fontSize: 13 }}>
               {error}
             </div>
           )}
-          <p style={{ textAlign: "center", color: T.muted, fontSize: 11, marginTop: 14 }}>
-            Autenticación segura vía Azure AD · @stcanaveral.com
-          </p>
+          {!showPin && (
+            <p style={{ textAlign: "center", color: T.muted, fontSize: 11, marginTop: 14 }}>
+              Autenticación segura vía Azure AD · @stcanaveral.com
+            </p>
+          )}
         </div>
       </div>
     </div>
@@ -537,7 +595,7 @@ function LoginScreen({ onLogin, admins, viewers, sedes, guardias, comercials }) 
 // ─── Nuevo Registro Form ───────────────────────────────────────────────────────
 function NuevoRegistroForm({ user, sedes, empresas, registros, onSave, onCancel }) {
   const [tipo, setTipo] = useState("");
-  const [empresaId, setEmpresaId] = useState("");
+  const [proveedorId, setProveedorId] = useState("");
   const [busqueda, setBusqueda] = useState("");
   const [sedeIdSel, setSedeIdSel] = useState(user.sedeId || "");
   const [gps, setGps] = useState(null);
@@ -553,7 +611,7 @@ function NuevoRegistroForm({ user, sedes, empresas, registros, onSave, onCancel 
   const empFiltradas = useMemo(() =>
     empActivas.filter(e => e.nombre.toLowerCase().includes(busqueda.toLowerCase())),
     [empActivas, busqueda]);
-  const empSel = empActivas.find(e => e.id === empresaId);
+  const empSel = empActivas.find(e => e.id === proveedorId);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -569,13 +627,13 @@ function NuevoRegistroForm({ user, sedes, empresas, registros, onSave, onCancel 
   }, []);
 
   const handleSave = async () => {
-    if (!tipo || !empresaId || !sedeIdSel) return;
+    if (!tipo || !proveedorId || !sedeIdSel) return;
     setSaving(true);
-    await onSave({ tipo, empresa: empSel.nombre, empresaId, gps, sedeIdOverride: isAdmin ? sedeIdSel : null });
+    await onSave({ tipo, proveedor: empSel.nombre, proveedorId, gps, sedeIdOverride: isAdmin ? sedeIdSel : null });
     setSaving(false);
   };
 
-  const canSave = tipo && empresaId && sedeIdSel;
+  const canSave = tipo && proveedorId && sedeIdSel;
 
   return (
     <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
@@ -650,24 +708,24 @@ function NuevoRegistroForm({ user, sedes, empresas, registros, onSave, onCancel 
           </div>
         </div>
 
-        {/* Empresa */}
+        {/* Proveedor */}
         <div style={{ marginBottom: 28 }}>
           <p style={{ fontSize: 13, fontWeight: 700, color: T.navyMid, marginBottom: 10, textTransform: "uppercase", letterSpacing: .5 }}>
-            Empresa *
+            Proveedor *
           </p>
           <div style={{ position: "relative" }}>
             <input
               value={busqueda}
-              onChange={e => { setBusqueda(e.target.value); setEmpresaId(""); setShowList(true); }}
+              onChange={e => { setBusqueda(e.target.value); setProveedorId(""); setShowList(true); }}
               onFocus={() => setShowList(true)}
-              placeholder="Buscar empresa..."
+              placeholder="Buscar proveedor..."
               style={{
                 width: "100%", padding: "14px 16px", borderRadius: 12,
-                border: `2px solid ${empresaId ? T.navyMid : T.border}`,
+                border: `2px solid ${proveedorId ? T.navyMid : T.border}`,
                 fontSize: 14, outline: "none", background: T.white, fontFamily: "'Plus Jakarta Sans', sans-serif"
               }}
             />
-            {showList && busqueda && !empresaId && (
+            {showList && busqueda && !proveedorId && (
               <div style={{
                 position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50,
                 background: T.white, border: `1px solid ${T.border}`, borderRadius: 12,
@@ -678,7 +736,7 @@ function NuevoRegistroForm({ user, sedes, empresas, registros, onSave, onCancel 
                   <div style={{ padding: 16, textAlign: "center", color: T.muted, fontSize: 13 }}>Sin resultados</div>
                 )}
                 {empFiltradas.map(e => (
-                  <div key={e.id} onClick={() => { setEmpresaId(e.id); setBusqueda(e.nombre); setShowList(false); }}
+                  <div key={e.id} onClick={() => { setProveedorId(e.id); setBusqueda(e.nombre); setShowList(false); }}
                     style={{
                       padding: "12px 16px", cursor: "pointer", fontSize: 14,
                       borderBottom: `1px solid ${T.border}`,
@@ -693,7 +751,7 @@ function NuevoRegistroForm({ user, sedes, empresas, registros, onSave, onCancel 
             {empSel && (
               <div style={{ marginTop: 8, padding: "10px 14px", background: T.navyMid, borderRadius: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>✓ {empSel.nombre}</span>
-                <button onClick={() => { setEmpresaId(""); setBusqueda(""); }} style={{ background: "none", border: "none", color: T.amber, cursor: "pointer", fontSize: 18 }}>×</button>
+                <button onClick={() => { setProveedorId(""); setBusqueda(""); }} style={{ background: "none", border: "none", color: T.amber, cursor: "pointer", fontSize: 18 }}>×</button>
               </div>
             )}
           </div>
@@ -806,7 +864,7 @@ function SecurityView({ user, sedes, empresas, registros, onNuevoRegistro, onLog
             borderLeft: `4px solid ${r.tipo === "entrada" ? T.green : T.red}`
           }}>
             <div>
-              <div style={{ fontSize: 15, fontWeight: 700, color: T.navyMid }}>{r.empresa}</div>
+              <div style={{ fontSize: 15, fontWeight: 700, color: T.navyMid }}>{r.proveedor}</div>
               <div style={{ fontSize: 12, color: T.muted, marginTop: 2 }}>
                 <span style={{ fontFamily: "'JetBrains Mono',monospace" }}>#{String(r.consecutivo).padStart(4, "0")}</span>
                 {" · "}{fmtTime(r.timestamp)}
@@ -837,7 +895,7 @@ function DetailModal({ reg, onClose, onEdit, onDelete, isAdmin }) {
 
         <div style={{ padding: "16px 20px 20px", textAlign: "center", borderBottom: `1px solid ${T.border}` }}>
           <Badge tipo={reg.tipo} size="lg" />
-          <div style={{ fontSize: 24, fontWeight: 900, color: T.navy, marginTop: 10 }}>{reg.empresa}</div>
+          <div style={{ fontSize: 24, fontWeight: 900, color: T.navy, marginTop: 10 }}>{reg.proveedor}</div>
           <div style={{ fontSize: 13, color: T.muted, marginTop: 4, fontFamily: "'JetBrains Mono',monospace" }}>
             Reg. #{String(reg.consecutivo).padStart(4, "0")}
           </div>
@@ -877,7 +935,7 @@ function DetailModal({ reg, onClose, onEdit, onDelete, isAdmin }) {
           <div style={{ margin: "0 16px 16px", background: T.redLight, border: `2px solid ${T.red}`, borderRadius: 12, padding: 16 }}>
             <div style={{ fontSize: 14, fontWeight: 800, color: T.red, marginBottom: 6 }}>⚠️ ¿Confirmar eliminación?</div>
             <div style={{ fontSize: 12, color: T.slate, marginBottom: 14, lineHeight: 1.5 }}>
-              Este movimiento de <strong>{reg.empresa}</strong> será eliminado permanentemente. Esta acción no se puede deshacer.
+              Este movimiento de <strong>{reg.proveedor}</strong> será eliminado permanentemente. Esta acción no se puede deshacer.
             </div>
             <div style={{ display: "flex", gap: 8 }}>
               <button onClick={() => setConfirmDelete(false)} style={{
@@ -899,12 +957,12 @@ function DetailModal({ reg, onClose, onEdit, onDelete, isAdmin }) {
 // ─── Edit Modal ───────────────────────────────────────────────────────────────
 function EditModal({ reg, empresas, onSave, onClose }) {
   const [tipo, setTipo] = useState(reg.tipo);
-  const [empresaId, setEmpresaId] = useState(reg.empresaId);
-  const [busqueda, setBusqueda] = useState(reg.empresa);
+  const [proveedorId, setProveedorId] = useState(reg.proveedorId);
+  const [busqueda, setBusqueda] = useState(reg.proveedor);
   const [showList, setShowList] = useState(false);
   const empActivas = empresas.filter(e => e.activa);
   const empFilt = empActivas.filter(e => e.nombre.toLowerCase().includes(busqueda.toLowerCase()));
-  const empSel = empActivas.find(e => e.id === empresaId);
+  const empSel = empActivas.find(e => e.id === proveedorId);
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.65)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}>
@@ -925,16 +983,16 @@ function EditModal({ reg, empresas, onSave, onClose }) {
           ))}
         </div>
 
-        <p style={{ fontSize: 12, fontWeight: 700, color: T.slate, textTransform: "uppercase", marginBottom: 8 }}>Empresa:</p>
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.slate, textTransform: "uppercase", marginBottom: 8 }}>Proveedor:</p>
         <div style={{ position: "relative", marginBottom: 20 }}>
-          <input value={busqueda} onChange={e => { setBusqueda(e.target.value); setEmpresaId(""); setShowList(true); }}
+          <input value={busqueda} onChange={e => { setBusqueda(e.target.value); setProveedorId(""); setShowList(true); }}
             onFocus={() => setShowList(true)}
             style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 14 }} />
           {showList && (
             <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, maxHeight: 160, overflowY: "auto", zIndex: 10, boxShadow: "0 4px 16px rgba(0,0,0,.1)", marginTop: 4 }}>
               {empFilt.map(e => (
-                <div key={e.id} onClick={() => { setEmpresaId(e.id); setBusqueda(e.nombre); setShowList(false); }}
-                  style={{ padding: "10px 14px", cursor: "pointer", fontSize: 13, borderBottom: `1px solid ${T.border}`, background: empresaId === e.id ? T.bg : "" }}
+                <div key={e.id} onClick={() => { setProveedorId(e.id); setBusqueda(e.nombre); setShowList(false); }}
+                  style={{ padding: "10px 14px", cursor: "pointer", fontSize: 13, borderBottom: `1px solid ${T.border}`, background: proveedorId === e.id ? T.bg : "" }}
                 >{e.nombre}</div>
               ))}
             </div>
@@ -943,7 +1001,7 @@ function EditModal({ reg, empresas, onSave, onClose }) {
 
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid ${T.border}`, background: T.white, cursor: "pointer", fontWeight: 600, fontSize: 14 }}>Cancelar</button>
-          <button onClick={() => onSave({ ...reg, tipo, empresa: empSel?.nombre || reg.empresa, empresaId: empresaId || reg.empresaId })}
+          <button onClick={() => onSave({ ...reg, tipo, proveedor: empSel?.nombre || reg.proveedor, proveedorId: proveedorId || reg.proveedorId })}
             style={{ flex: 1, padding: 12, borderRadius: 10, border: "none", background: "#7dd105", color: "#05200b", cursor: "pointer", fontWeight: 800, fontSize: 14 }}>Guardar</button>
         </div>
       </div>
@@ -985,7 +1043,7 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
   const calcReal = useCallback((empId, sedeId, desde, hasta) => {
     return visitas
       .filter(v => v.status === "completo" && v.duracionMin !== null &&
-        v.empresaId === empId && v.sedeId === sedeId)
+        v.proveedorId === empId && v.sedeId === sedeId)
       .reduce((sum, v) => {
         const ts = new Date(v.entrada?.timestamp || v.fecha);
         return (ts >= desde && ts <= hasta) ? sum + v.duracionMin / 60 : sum;
@@ -1011,12 +1069,12 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
     const isCurrent = weekOffset === 0;
     const label = isCurrent ? "Semana actual" : fmtWeekLabel(mon, sun);
     const filas = acuerdos
-      .filter(a => (!filtroEmp || a.empresaId === filtroEmp) && (!filtroSede || a.sedeId === filtroSede))
+      .filter(a => (!filtroEmp || a.proveedorId === filtroEmp) && (!filtroSede || a.sedeId === filtroSede))
       .map(a => {
         const acordado = calcAcordado(a, mon, sun);
-        const real     = calcReal(a.empresaId, a.sedeId, mon, sun);
+        const real     = calcReal(a.proveedorId, a.sedeId, mon, sun);
         const pct      = acordado > 0 ? Math.min(100, Math.round((real/acordado)*100)) : null;
-        return { key:`${a.empresaId}__${a.sedeId}`, emp: empresas.find(e=>e.id===a.empresaId), sede: sedes.find(s=>s.id===a.sedeId), acordado, real, pct };
+        return { key:`${a.proveedorId}__${a.sedeId}`, emp: empresas.find(e=>e.id===a.proveedorId), sede: sedes.find(s=>s.id===a.sedeId), acordado, real, pct };
       })
       .sort((a,b) => (a.pct??101)-(b.pct??101));
     const totalAcord = filas.reduce((s,f)=>s+f.acordado,0);
@@ -1044,17 +1102,17 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
       semanas.push({ mon: new Date(mon), sun, label: `${mon.getDate()}/${mon.getMonth()+1}` });
       cur.setDate(cur.getDate()+7);
     }
-    const acFilt = acuerdos.filter(a => (!filtroEmp||a.empresaId===filtroEmp)&&(!filtroSede||a.sedeId===filtroSede));
+    const acFilt = acuerdos.filter(a => (!filtroEmp||a.proveedorId===filtroEmp)&&(!filtroSede||a.sedeId===filtroSede));
     const filas = acFilt.map(a => {
       const semsData = semanas.map(s => {
         const ac = calcAcordado(a, s.mon, s.sun);
-        const re = calcReal(a.empresaId, a.sedeId, s.mon, s.sun);
+        const re = calcReal(a.proveedorId, a.sedeId, s.mon, s.sun);
         return { ac, re, pct: ac>0?Math.min(100,Math.round((re/ac)*100)):null };
       });
       const totalAc = semsData.reduce((s,d)=>s+d.ac,0);
       const totalRe = semsData.reduce((s,d)=>s+d.re,0);
       const pctTotal = totalAc>0?Math.min(100,Math.round((totalRe/totalAc)*100)):null;
-      return { key:`${a.empresaId}__${a.sedeId}`, emp:empresas.find(e=>e.id===a.empresaId), sede:sedes.find(s=>s.id===a.sedeId), semsData, totalAc, totalRe, pctTotal };
+      return { key:`${a.proveedorId}__${a.sedeId}`, emp:empresas.find(e=>e.id===a.proveedorId), sede:sedes.find(s=>s.id===a.sedeId), semsData, totalAc, totalRe, pctTotal };
     }).sort((a,b)=>(a.pctTotal??101)-(b.pctTotal??101));
     const gAc = filas.reduce((s,f)=>s+f.totalAc,0);
     const gRe = filas.reduce((s,f)=>s+f.totalRe,0);
@@ -1072,17 +1130,17 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
       const label = new Date(yr,m,1).toLocaleDateString("es-CO",{month:"short"});
       return { m, desde, hasta, label: label.charAt(0).toUpperCase()+label.slice(1) };
     });
-    const acFilt = acuerdos.filter(a=>(!filtroEmp||a.empresaId===filtroEmp)&&(!filtroSede||a.sedeId===filtroSede));
-    // Filas por empresa+sede
+    const acFilt = acuerdos.filter(a=>(!filtroEmp||a.proveedorId===filtroEmp)&&(!filtroSede||a.sedeId===filtroSede));
+    // Filas por proveedor+sede
     const filas = acFilt.map(a => {
       const mesesData = meses.map(mes => {
         const ac = calcAcordado(a, mes.desde, mes.hasta);
-        const re = calcReal(a.empresaId, a.sedeId, mes.desde, mes.hasta);
+        const re = calcReal(a.proveedorId, a.sedeId, mes.desde, mes.hasta);
         return { ac, re, pct: ac>0?Math.min(100,Math.round((re/ac)*100)):null };
       });
       const totalAc = mesesData.reduce((s,d)=>s+d.ac,0);
       const totalRe = mesesData.reduce((s,d)=>s+d.re,0);
-      return { key:`${a.empresaId}__${a.sedeId}`, emp:empresas.find(e=>e.id===a.empresaId), sede:sedes.find(s=>s.id===a.sedeId), mesesData, totalAc, totalRe, pctTotal:totalAc>0?Math.min(100,Math.round((totalRe/totalAc)*100)):null };
+      return { key:`${a.proveedorId}__${a.sedeId}`, emp:empresas.find(e=>e.id===a.proveedorId), sede:sedes.find(s=>s.id===a.sedeId), mesesData, totalAc, totalRe, pctTotal:totalAc>0?Math.min(100,Math.round((totalRe/totalAc)*100)):null };
     }).sort((a,b)=>(a.pctTotal??101)-(b.pctTotal??101));
     // Fila global compañía por mes
     const globalMeses = meses.map((mes,i) => {
@@ -1113,7 +1171,7 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
       {/* Header */}
       <div style={{ marginBottom: 16 }}>
         <h2 style={{ fontSize: 20, fontWeight: 900, color: T.navy, margin: 0 }}>📊 Cumplimiento de Horas</h2>
-        <p style={{ fontSize: 13, color: T.muted, margin: "4px 0 0" }}>Detecta qué empresas y sedes están cumpliendo — por semana, mes o año</p>
+        <p style={{ fontSize: 13, color: T.muted, margin: "4px 0 0" }}>Detecta qué proveedores y sedes están cumpliendo — por semana, mes o año</p>
       </div>
 
       {/* Modo + Navegador */}
@@ -1139,8 +1197,8 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
       <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
         <select value={filtroEmp} onChange={e=>setFiltroEmp(e.target.value)}
           style={{ flex:1,minWidth:180,padding:"9px 12px",borderRadius:8,border:`1.5px solid ${filtroEmp?T.amber:T.border}`,fontSize:13,background:"#fff",color:T.navy }}>
-          <option value="">🏭 Todas las empresas</option>
-          {[...new Set(acuerdos.map(a=>a.empresaId))].map(id=>{const e=empresas.find(x=>x.id===id);return e?<option key={id} value={id} style={{color:T.navy}}>{e.nombre}</option>:null;})}
+          <option value="">🏭 Todos los proveedores</option>
+          {[...new Set(acuerdos.map(a=>a.proveedorId))].map(id=>{const e=empresas.find(x=>x.id===id);return e?<option key={id} value={id} style={{color:T.navy}}>{e.nombre}</option>:null;})}
         </select>
         <select value={filtroSede} onChange={e=>setFiltroSede(e.target.value)}
           style={{ flex:1,minWidth:160,padding:"9px 12px",borderRadius:8,border:`1.5px solid ${filtroSede?T.amber:T.border}`,fontSize:13,background:"#fff",color:T.navy }}>
@@ -1172,7 +1230,7 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
           ? <EmptyState />
           : <div style={{ background:T.white, borderRadius:14, border:`1px solid ${T.border}`, overflow:"hidden" }}>
               <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 80px 80px 1fr 70px", gap:8, padding:"10px 16px", background:T.bg, borderBottom:`1px solid ${T.border}`, fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase" }}>
-                <div>Empresa</div><div>Sede</div><div style={{textAlign:"right"}}>Acordado</div><div style={{textAlign:"right"}}>Real</div><div style={{textAlign:"center"}}>Progreso</div><div style={{textAlign:"center"}}>%</div>
+                <div>Proveedor</div><div>Sede</div><div style={{textAlign:"right"}}>Acordado</div><div style={{textAlign:"right"}}>Real</div><div style={{textAlign:"center"}}>Progreso</div><div style={{textAlign:"center"}}>%</div>
               </div>
               {semanaData.filas.map(f=>(
                 <div key={f.key} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 80px 80px 1fr 70px", gap:8, padding:"11px 16px", borderBottom:`1px solid ${T.border}`, alignItems:"center", background:pctBg(f.pct) }}>
@@ -1197,7 +1255,7 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
               <div style={{ minWidth:600, background:T.white, borderRadius:14, border:`1px solid ${T.border}`, overflow:"hidden" }}>
                 {/* Cabecera */}
                 <div style={{ display:"grid", gridTemplateColumns:`180px 120px repeat(${mesData.semanas.length},1fr) 70px`, padding:"10px 16px", background:T.navy, fontSize:11, fontWeight:700, color:"rgba(255,255,255,.7)", textTransform:"uppercase", gap:6 }}>
-                  <div>Empresa</div><div>Sede</div>
+                  <div>Proveedor</div><div>Sede</div>
                   {mesData.semanas.map((s,i)=><div key={i} style={{textAlign:"center"}}>Sem {i+1}<br/><span style={{fontSize:9,fontWeight:400,color:"rgba(255,255,255,.5)"}}>{s.label}</span></div>)}
                   <div style={{textAlign:"center"}}>Total</div>
                 </div>
@@ -1238,10 +1296,10 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
                 <span style={{marginLeft:"auto",fontWeight:900,fontSize:18,color:pctColor(anioData.pctGlobal)}}>{anioData.pctGlobal}%</span>
               </div>
 
-              {/* Tabla por empresa+sede */}
+              {/* Tabla por proveedor+sede */}
               <div style={{ minWidth:800, background:T.white, borderRadius:14, border:`1px solid ${T.border}`, overflow:"hidden" }}>
                 <div style={{ display:"grid", gridTemplateColumns:`160px 120px repeat(12,1fr) 60px`, padding:"10px 14px", background:T.bg, borderBottom:`1px solid ${T.border}`, fontSize:10, fontWeight:700, color:T.muted, textTransform:"uppercase", gap:4 }}>
-                  <div>Empresa</div><div>Sede</div>
+                  <div>Proveedor</div><div>Sede</div>
                   {anioData.meses.map((m,i)=><div key={i} style={{textAlign:"center"}}>{m.label}</div>)}
                   <div style={{textAlign:"center"}}>Año</div>
                 </div>
@@ -1301,7 +1359,7 @@ function AcuerdosView({ acuerdos, empresas, sedes, onUpdateAcuerdos, canEdit, to
   const totalHoras   = (h) => DIAS.reduce((s, d) => s + (Number(h?.[d]) || 0), 0);
 
   const acuerdosFilt = acuerdos.filter(a => {
-    if (filtroEmpId  && a.empresaId !== filtroEmpId)  return false;
+    if (filtroEmpId  && a.proveedorId !== filtroEmpId)  return false;
     if (filtroSedeId && a.sedeId    !== filtroSedeId) return false;
     return true;
   });
@@ -1316,13 +1374,13 @@ function AcuerdosView({ acuerdos, empresas, sedes, onUpdateAcuerdos, canEdit, to
     if (exportFiltro === "sede" && exportSedeId) {
       datos = datos.filter(a => a.sedeId === exportSedeId);
       sufijo = "Sede_" + (sedes.find(s => s.id === exportSedeId)?.nombre || "");
-    } else if (exportFiltro === "empresa" && exportEmpId) {
-      datos = datos.filter(a => a.empresaId === exportEmpId);
-      sufijo = "Empresa_" + (empresas.find(e => e.id === exportEmpId)?.nombre || "");
+    } else if (exportFiltro === "proveedor" && exportEmpId) {
+      datos = datos.filter(a => a.proveedorId === exportEmpId);
+      sufijo = "Proveedor_" + (empresas.find(e => e.id === exportEmpId)?.nombre || "");
     }
-    const headers = ["Empresa","Sede","Lun","Mar","Mié","Jue","Vie","Sáb","Dom","Total h/semana","Notas"];
+    const headers = ["Proveedor","Sede","Lun","Mar","Mié","Jue","Vie","Sáb","Dom","Total h/semana","Notas"];
     const rows = datos.map(a => {
-      const emp  = empresas.find(e => e.id === a.empresaId);
+      const emp  = empresas.find(e => e.id === a.proveedorId);
       const sede = sedes.find(s => s.id === a.sedeId);
       return [
         emp?.nombre  || "—", sede?.nombre || "—",
@@ -1355,13 +1413,13 @@ function AcuerdosView({ acuerdos, empresas, sedes, onUpdateAcuerdos, canEdit, to
     if (filtroSedeId && !filtroEmpId) {
       // Viendo UNA sede → cuántas empresas, cuántas horas
       return [
-        { label: "Empresas en esta sede", value: new Set(base.map(a => a.empresaId)).size, color: "#0ea5e9" },
+        { label: "Proveedores en esta sede", value: new Set(base.map(a => a.proveedorId)).size, color: "#0ea5e9" },
         { label: "Acuerdos",              value: base.length,                               color: T.amber  },
         { label: "Total horas/semana",    value: hTotal + "h",                              color: "#7dd105"},
       ];
     }
     if (filtroEmpId && !filtroSedeId) {
-      // Viendo UNA empresa → cuántas sedes, cuántas horas
+      // Viendo UNA proveedor → cuántas sedes, cuántas horas
       return [
         { label: "Sedes con acuerdo",  value: new Set(base.map(a => a.sedeId)).size, color: "#7c3aed" },
         { label: "Acuerdos",           value: base.length,                            color: T.amber   },
@@ -1371,7 +1429,7 @@ function AcuerdosView({ acuerdos, empresas, sedes, onUpdateAcuerdos, canEdit, to
     // Vista global
     return [
       { label: "Acuerdos activos",      value: acuerdos.length,                            color: T.amber  },
-      { label: "Empresas con acuerdo",  value: new Set(acuerdos.map(a => a.empresaId)).size, color: "#0ea5e9"},
+      { label: "Proveedores con acuerdo",  value: new Set(acuerdos.map(a => a.proveedorId)).size, color: "#0ea5e9"},
       { label: "Sedes cubiertas",       value: new Set(acuerdos.map(a => a.sedeId)).size,    color: "#7c3aed"},
       { label: "Total horas/semana",    value: acuerdos.reduce((s,a) => s + totalHoras(a.horas), 0) + "h", color: "#7dd105"},
     ];
@@ -1424,7 +1482,7 @@ function AcuerdosView({ acuerdos, empresas, sedes, onUpdateAcuerdos, canEdit, to
               {[
                 { k: "todo",    label: "🌐 Toda la compañía",   desc: `${acuerdos.length} acuerdos` },
                 { k: "sede",    label: "📍 Filtrar por sede",    desc: "Solo una sede" },
-                { k: "empresa", label: "🏭 Filtrar por empresa", desc: "Solo una empresa" },
+                { k: "proveedor", label: "🏭 Filtrar por proveedor", desc: "Solo una proveedor" },
               ].map(op => (
                 <div key={op.k} onClick={() => setExportFiltro(op.k)}
                   style={{ display: "flex", alignItems: "center", gap: 12, padding: "12px 14px", borderRadius: 10, marginBottom: 8, cursor: "pointer",
@@ -1450,12 +1508,12 @@ function AcuerdosView({ acuerdos, empresas, sedes, onUpdateAcuerdos, canEdit, to
                 </select>
               )}
 
-              {exportFiltro === "empresa" && (
+              {exportFiltro === "proveedor" && (
                 <select value={exportEmpId} onChange={e => setExportEmpId(e.target.value)}
                   style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1.5px solid ${T.border}`, fontSize: 14, background: "#fff", color: T.navy, marginTop: 4 }}>
-                  <option style={{ color: T.navy }} value="">-- Selecciona empresa --</option>
-                  {empActivas.filter(e => acuerdos.some(a => a.empresaId === e.id)).map(e => (
-                    <option style={{ color: T.navy }} key={e.id} value={e.id}>{e.nombre} ({acuerdos.filter(a => a.empresaId === e.id).length} sedes)</option>
+                  <option style={{ color: T.navy }} value="">-- Selecciona proveedor --</option>
+                  {empActivas.filter(e => acuerdos.some(a => a.proveedorId === e.id)).map(e => (
+                    <option style={{ color: T.navy }} key={e.id} value={e.id}>{e.nombre} ({acuerdos.filter(a => a.proveedorId === e.id).length} sedes)</option>
                   ))}
                 </select>
               )}
@@ -1465,9 +1523,9 @@ function AcuerdosView({ acuerdos, empresas, sedes, onUpdateAcuerdos, canEdit, to
               </div>
 
               <button onClick={exportarAcuerdos}
-                disabled={(exportFiltro === "sede" && !exportSedeId) || (exportFiltro === "empresa" && !exportEmpId)}
+                disabled={(exportFiltro === "sede" && !exportSedeId) || (exportFiltro === "proveedor" && !exportEmpId)}
                 style={{ width: "100%", marginTop: 16, padding: "13px", borderRadius: 10, border: "none",
-                  background: (exportFiltro === "sede" && !exportSedeId) || (exportFiltro === "empresa" && !exportEmpId) ? "#94a3b8" : "#16a34a",
+                  background: (exportFiltro === "sede" && !exportSedeId) || (exportFiltro === "proveedor" && !exportEmpId) ? "#94a3b8" : "#16a34a",
                   color: "#fff", fontWeight: 800, fontSize: 15, cursor: "pointer" }}>
                 📥 Descargar Excel
               </button>
@@ -1480,7 +1538,7 @@ function AcuerdosView({ acuerdos, empresas, sedes, onUpdateAcuerdos, canEdit, to
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 16, flexWrap: "wrap", gap: 12 }}>
         <div>
           <h2 style={{ fontSize: 20, fontWeight: 900, color: T.navy, margin: 0 }}>🤝 Acuerdos Comerciales</h2>
-          <p style={{ fontSize: 13, color: T.muted, margin: "4px 0 0" }}>Horas pactadas por empresa, sede y día</p>
+          <p style={{ fontSize: 13, color: T.muted, margin: "4px 0 0" }}>Horas pactadas por proveedor, sede y día</p>
         </div>
         <div style={{ display: "flex", gap: 8 }}>
           <button onClick={() => setShowExport(true)} style={{
@@ -1501,8 +1559,8 @@ function AcuerdosView({ acuerdos, empresas, sedes, onUpdateAcuerdos, canEdit, to
         <span style={{ color: "rgba(255,255,255,.7)", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1, whiteSpace: "nowrap" }}>🔍 Filtrar por</span>
         <select value={filtroEmpId} onChange={e => setFiltroEmpId(e.target.value)}
           style={{ flex: 1, minWidth: 180, padding: "9px 12px", borderRadius: 8, border: `2px solid ${filtroEmpId ? T.amber : "transparent"}`, fontSize: 13, background: "#ffffff", color: "#05200b", fontWeight: 400, outline: "none" }}>
-          <option style={{ background: "#ffffff", color: "#05200b" }} value="">🏭 Todas las empresas</option>
-          {empActivas.filter(e => acuerdos.some(a => a.empresaId === e.id)).map(e => (
+          <option style={{ background: "#ffffff", color: "#05200b" }} value="">🏭 Todos los proveedores</option>
+          {empActivas.filter(e => acuerdos.some(a => a.proveedorId === e.id)).map(e => (
             <option style={{ background: "#ffffff", color: "#05200b" }} key={e.id} value={e.id}>{e.nombre}</option>
           ))}
         </select>
@@ -1545,7 +1603,7 @@ function AcuerdosView({ acuerdos, empresas, sedes, onUpdateAcuerdos, canEdit, to
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: 12 }}>
           {acuerdosFilt.map(a => {
-            const emp  = empresas.find(e => e.id === a.empresaId);
+            const emp  = empresas.find(e => e.id === a.proveedorId);
             const sede = sedes.find(s => s.id === a.sedeId);
             const total = totalHoras(a.horas || {});
             return (
@@ -1604,7 +1662,7 @@ function AcuerdosView({ acuerdos, empresas, sedes, onUpdateAcuerdos, canEdit, to
 }
 
 function AcuerdoForm({ acuerdo, empresas, sedes, onSave, onCancel }) {
-  const [empresaId, setEmpresaId] = useState(acuerdo?.empresaId || "");
+  const [proveedorId, setProveedorId] = useState(acuerdo?.proveedorId || "");
   const [sedeId, setSedeId]       = useState(acuerdo?.sedeId || "");
   const [horas, setHoras]         = useState(acuerdo?.horas || { lunes:0, martes:0, "miércoles":0, jueves:0, viernes:0, "sábado":0, domingo:0 });
   const [notas, setNotas]         = useState(acuerdo?.notas || "");
@@ -1612,7 +1670,7 @@ function AcuerdoForm({ acuerdo, empresas, sedes, onSave, onCancel }) {
 
   const empFilt = empresas.filter(e => e.nombre.toLowerCase().includes(busqEmp.toLowerCase()));
   const total = DIAS.reduce((s, d) => s + (Number(horas[d]) || 0), 0);
-  const canSave = empresaId && sedeId;
+  const canSave = proveedorId && sedeId;
 
   return (
     <div style={{ maxWidth: 600, margin: "0 auto", padding: 4 }}>
@@ -1623,15 +1681,15 @@ function AcuerdoForm({ acuerdo, empresas, sedes, onSave, onCancel }) {
         </h3>
       </div>
 
-      {/* Empresa */}
+      {/* Proveedor */}
       <div style={{ background: T.white, borderRadius: 14, padding: 18, marginBottom: 14, border: `1px solid ${T.border}` }}>
-        <label style={{ fontSize: 13, fontWeight: 700, color: T.slate, display: "block", marginBottom: 8 }}>🏭 Empresa</label>
+        <label style={{ fontSize: 13, fontWeight: 700, color: T.slate, display: "block", marginBottom: 8 }}>🏭 Proveedor</label>
         <input value={busqEmp} onChange={e => setBusqEmp(e.target.value)}
-          placeholder="Buscar empresa..."
+          placeholder="Buscar proveedor..."
           style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 14, marginBottom: 8 }} />
-        <select value={empresaId} onChange={e => setEmpresaId(e.target.value)}
-          style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1.5px solid ${empresaId ? T.amber : T.border}`, fontSize: 14, background: "#fff" }}>
-          <option value="">-- Selecciona la empresa --</option>
+        <select value={proveedorId} onChange={e => setProveedorId(e.target.value)}
+          style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1.5px solid ${proveedorId ? T.amber : T.border}`, fontSize: 14, background: "#fff" }}>
+          <option value="">-- Selecciona el proveedor --</option>
           {empFilt.map(e => <option key={e.id} value={e.id}>{e.nombre}</option>)}
         </select>
       </div>
@@ -1683,7 +1741,7 @@ function AcuerdoForm({ acuerdo, empresas, sedes, onSave, onCancel }) {
 
       <div style={{ display: "flex", gap: 10 }}>
         <button onClick={onCancel} style={{ flex: 1, padding: "14px", borderRadius: 10, border: `1px solid ${T.border}`, background: T.white, fontSize: 14, fontWeight: 700, cursor: "pointer" }}>Cancelar</button>
-        <button onClick={() => canSave && onSave({ ...acuerdo, id: acuerdo?.id, empresaId, sedeId, horas, notas, updatedAt: Date.now() })}
+        <button onClick={() => canSave && onSave({ ...acuerdo, id: acuerdo?.id, proveedorId, sedeId, horas, notas, updatedAt: Date.now() })}
           disabled={!canSave}
           style={{ flex: 2, padding: "14px", borderRadius: 10, border: "none", background: canSave ? T.amber : "#334155", color: canSave ? T.navy : T.muted, fontSize: 14, fontWeight: 800, cursor: canSave ? "pointer" : "not-allowed" }}>
           {acuerdo ? "Guardar cambios" : "Crear acuerdo"} — {total}h/semana
@@ -1726,9 +1784,9 @@ function ViewAsBar({ viewAs, setViewAs }) {
 }
 
 // ─── Admin Dashboard ──────────────────────────────────────────────────────────
-function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, onNuevoRegistro, onLogout, onOpenPanel, isViewer = false, isComercial = false, onUpdateEmpresas, acuerdos = [], onUpdateAcuerdos, viewAs = "admin", onSetViewAs, online, pendingCount, syncing, onSync, lastSyncAt }) {
+function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, onNuevoRegistro, onLogout, onOpenPanel, isViewer = false, isComercial = false, onUpdateProveedors, acuerdos = [], onUpdateAcuerdos, viewAs = "admin", onSetViewAs, online, pendingCount, syncing, onSync, lastSyncAt }) {
   const [filterSede, setFilterSede] = useState("");
-  const [filterEmpresa, setFilterEmpresa] = useState("");
+  const [filterProveedor, setFilterProveedor] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
   const [filterDateTo, setFilterDateTo]   = useState("");
   const [detailReg, setDetailReg] = useState(null);
@@ -1745,7 +1803,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
   const [filterStatus, setFilterStatus] = useState(""); // "completo" | "adentro" | "solo_salida" | ""
 
   const sedesEnUso = sedes.filter(s => s.activa && registros.some(r => r.sedeId === s.id));
-  const empresasEnUso = empresas.filter(e => e.activa && registros.some(r => r.empresaId === e.id));
+  const empresasEnUso = empresas.filter(e => e.activa && registros.some(r => r.proveedorId === e.id));
 
   const filtered = useMemo(() => {
     // Parse dates as LOCAL midnight to avoid UTC offset issues
@@ -1757,11 +1815,11 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
       : null;
     return registros
       .filter(r => !filterSede    || r.sedeId    === filterSede)
-      .filter(r => !filterEmpresa || r.empresaId === filterEmpresa)
+      .filter(r => !filterProveedor || r.proveedorId === filterProveedor)
       .filter(r => !fromTs || r.timestamp >= fromTs)
       .filter(r => !toTs   || r.timestamp <= toTs)
       .sort((a, b) => b.timestamp - a.timestamp);
-  }, [registros, filterSede, filterEmpresa, filterDateFrom, filterDateTo]);
+  }, [registros, filterSede, filterProveedor, filterDateFrom, filterDateTo]);
 
   const byDate = useMemo(() =>
     filtered
@@ -1774,14 +1832,14 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
     [filtered, filterTipo]);
 
   // ── Algoritmo de visitas ──────────────────────────────────────────────────
-  // Agrupa por sede + empresa + día y empareja entradas con salidas
+  // Agrupa por sede + proveedor + día y empareja entradas con salidas
   const visitas = useMemo(() => {
     const source = filtered;
-    // Agrupar por clave: sedeId|empresaId|fecha
+    // Agrupar por clave: sedeId|proveedorId|fecha
     const grupos = {};
     source.forEach(r => {
       const dia = new Date(r.timestamp).toDateString();
-      const key = `${r.sedeId}|${r.empresaId}|${dia}`;
+      const key = `${r.sedeId}|${r.proveedorId}|${dia}`;
       if (!grupos[key]) grupos[key] = { entradas: [], salidas: [], meta: r };
       if (r.tipo === "entrada") grupos[key].entradas.push(r);
       else grupos[key].salidas.push(r);
@@ -1802,7 +1860,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
           const durMin = Math.round(durMs / 60000);
           resultado.push({
             visitId: `v-${entrada.id}`,
-            empresa: entrada.empresa, empresaId: entrada.empresaId,
+            proveedor: entrada.proveedor, proveedorId: entrada.proveedorId,
             sedeId: entrada.sedeId, sedeName: entrada.sedeName,
             fecha: entrada.timestamp,
             entrada, salida: salidaMatch,
@@ -1813,7 +1871,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
           // Entrada sin salida = sigue adentro
           resultado.push({
             visitId: `v-${entrada.id}`,
-            empresa: entrada.empresa, empresaId: entrada.empresaId,
+            proveedor: entrada.proveedor, proveedorId: entrada.proveedorId,
             sedeId: entrada.sedeId, sedeName: entrada.sedeName,
             fecha: entrada.timestamp,
             entrada, salida: null,
@@ -1827,7 +1885,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
       salidas.filter(s => !usedSalidas.has(s.id)).forEach(salida => {
         resultado.push({
           visitId: `v-out-${salida.id}`,
-          empresa: salida.empresa, empresaId: salida.empresaId,
+          proveedor: salida.proveedor, proveedorId: salida.proveedorId,
           sedeId: salida.sedeId, sedeName: salida.sedeName,
           fecha: salida.timestamp,
           entrada: null, salida,
@@ -1865,9 +1923,9 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
 
       if (modo === "visitas") {
         // Exportar visitas consolidadas
-        headers = ["Empresa","Sede","Fecha","Hora Entrada","Hora Salida","Duración","Estado","Guardia Entrada","Guardia Salida"];
+        headers = ["Proveedor","Sede","Fecha","Hora Entrada","Hora Salida","Duración","Estado","Guardia Entrada","Guardia Salida"];
         rows = visitas.map(v => [
-          v.empresa, v.sedeName,
+          v.proveedor, v.sedeName,
           fmtDate(v.fecha),
           v.entrada ? fmtTime(v.entrada.timestamp) : "",
           v.salida  ? fmtTime(v.salida.timestamp)  : "",
@@ -1881,12 +1939,12 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
         const datos = modo === "filtrado"
           ? filtered
           : registros.slice().sort((a, b) => b.timestamp - a.timestamp);
-        headers = ["N° Registro","Fecha","Hora","Tipo","Empresa","Sede","Registrado por","GPS Latitud","GPS Longitud","ID Registro"];
+        headers = ["N° Registro","Fecha","Hora","Tipo","Proveedor","Sede","Registrado por","GPS Latitud","GPS Longitud","ID Registro"];
         rows = datos.map(r => [
           String(r.consecutivo).padStart(4,"0"),
           fmtDate(r.timestamp), fmtTime(r.timestamp),
           r.tipo === "entrada" ? "ENTRADA" : "SALIDA",
-          r.empresa, r.sedeName, r.guardiaName,
+          r.proveedor, r.sedeName, r.guardiaName,
           r.gps?.lat || "", r.gps?.lng || "", r.id,
         ].map(escape).join(","));
         filename = modo === "filtrado"
@@ -1919,11 +1977,11 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
         <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.5)", zIndex: 999, display: "flex", alignItems: "flex-end", justifyContent: "center" }}>
           <div style={{ background: T.white, borderRadius: "20px 20px 0 0", width: "100%", maxWidth: 520, maxHeight: "85vh", overflow: "hidden", display: "flex", flexDirection: "column" }}>
             <div style={{ background: "#0ea5e9", padding: "16px 20px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-              <div style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>🏭 Gestión de Empresas</div>
+              <div style={{ color: "#fff", fontWeight: 800, fontSize: 16 }}>🏭 Gestión de Proveedors</div>
               <button onClick={() => setShowComercialPanel(false)} style={{ background: "rgba(255,255,255,.2)", border: "none", color: "#fff", width: 32, height: 32, borderRadius: 8, cursor: "pointer", fontSize: 16, fontWeight: 700 }}>✕</button>
             </div>
             <div style={{ padding: 20, overflowY: "auto", flex: 1 }}>
-              <ComercialEmpresasPanel empresas={empresas} onUpdateEmpresas={onUpdateEmpresas} />
+              <ComercialProveedorsPanel empresas={empresas} onUpdateProveedors={onUpdateProveedors} />
             </div>
           </div>
         </div>
@@ -1973,7 +2031,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
             display: "flex", alignItems: "center", gap: 5
           }}>📊 Excel</button>
           {isComercial && (
-            <button onClick={() => setShowComercialPanel(true)} style={{ background: "#0ea5e9", border: "none", color: "#fff", padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>🏭 Empresas</button>
+            <button onClick={() => setShowComercialPanel(true)} style={{ background: "#0ea5e9", border: "none", color: "#fff", padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>🏭 Proveedores</button>
           )}
           {!isViewer && !isComercial && (
             <button onClick={onOpenPanel} style={{ background: "rgba(255,255,255,.1)", border: "none", color: "#fff", padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>⚙️ Admin</button>
@@ -2015,12 +2073,12 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
               ))}
             </select>
 
-            <p style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Filtrar por empresa</p>
-            <select value={filterEmpresa} onChange={e => setFilterEmpresa(e.target.value)}
+            <p style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Filtrar por proveedor</p>
+            <select value={filterProveedor} onChange={e => setFilterProveedor(e.target.value)}
               style={{ width: "100%", padding: "10px 12px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 13, marginBottom: 16, background: T.bg }}>
-              <option value="">Todas las empresas</option>
+              <option value="">Todos los proveedores</option>
               {empresasEnUso.map(e => (
-                <option key={e.id} value={e.id}>{e.nombre} ({registros.filter(r => r.empresaId === e.id).length})</option>
+                <option key={e.id} value={e.id}>{e.nombre} ({registros.filter(r => r.proveedorId === e.id).length})</option>
               ))}
             </select>
 
@@ -2085,8 +2143,8 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
               </div>
             </div>
 
-            {(filterSede || filterEmpresa || filterDateFrom || filterDateTo) && (
-              <button onClick={() => { setFilterSede(""); setFilterEmpresa(""); setFilterDateFrom(""); setFilterDateTo(""); }}
+            {(filterSede || filterProveedor || filterDateFrom || filterDateTo) && (
+              <button onClick={() => { setFilterSede(""); setFilterProveedor(""); setFilterDateFrom(""); setFilterDateTo(""); }}
                 style={{ width: "100%", padding: "8px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.white, cursor: "pointer", fontSize: 12, color: T.slate, fontWeight: 600, marginTop: 10 }}>
                 ✕ Limpiar todos los filtros
               </button>
@@ -2207,7 +2265,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
               {Object.keys(byDate).length === 0 && (
                 <div style={{ textAlign: "center", padding: "64px 20px", color: T.muted }}>
                   <div style={{ fontSize: 56 }}>📋</div>
-                  <div style={{ fontSize: 16, fontWeight: 600, marginTop: 8 }}>Sin movimientos{filterSede || filterEmpresa ? " con estos filtros" : ""}</div>
+                  <div style={{ fontSize: 16, fontWeight: 600, marginTop: 8 }}>Sin movimientos{filterSede || filterProveedor ? " con estos filtros" : ""}</div>
                   <div style={{ fontSize: 13, marginTop: 4 }}>Los registros aparecerán aquí en tiempo real</div>
                 </div>
               )}
@@ -2233,7 +2291,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
                       onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,.04)"; }}
                     >
                       <div>
-                        <div style={{ fontSize: 15, fontWeight: 700, color: T.navyMid }}>{r.empresa}</div>
+                        <div style={{ fontSize: 15, fontWeight: 700, color: T.navyMid }}>{r.proveedor}</div>
                         <div style={{ fontSize: 12, color: T.muted, marginTop: 3 }}>
                           <span style={{ fontFamily: "'JetBrains Mono',monospace" }}>#{String(r.consecutivo).padStart(4, "0")}</span>
                           {" · "}{r.sedeName}{" · "}{fmtTime(r.timestamp)}
@@ -2298,7 +2356,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
                           <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
                             <div style={{ flex: 1 }}>
                               <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                                <span style={{ fontSize: 16, fontWeight: 800, color: T.navyMid }}>{v.empresa}</span>
+                                <span style={{ fontSize: 16, fontWeight: 800, color: T.navyMid }}>{v.proveedor}</span>
                                 <span style={{ background: statusCfg.bg, color: statusCfg.col, borderRadius: 99, padding: "2px 10px", fontSize: 11, fontWeight: 700 }}>
                                   {statusCfg.icon} {statusCfg.label}
                                 </span>
@@ -2393,7 +2451,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
                   <span style={{ background:statusCfg.bg, color:statusCfg.col, borderRadius:99, padding:"5px 16px", fontSize:13, fontWeight:800 }}>
                     {statusCfg.icon} {statusCfg.label}
                   </span>
-                  <div style={{ fontSize:24, fontWeight:900, color:T.navy, marginTop:10 }}>{v.empresa}</div>
+                  <div style={{ fontSize:24, fontWeight:900, color:T.navy, marginTop:10 }}>{v.proveedor}</div>
                   <div style={{ fontSize:13, color:T.muted, marginTop:4 }}>📍 {v.sedeName}</div>
                   {v.duracionMin !== null && (
                     <div style={{ marginTop:12, display:"inline-flex", alignItems:"center", gap:8, background:T.navy, borderRadius:12, padding:"8px 20px" }}>
@@ -2448,7 +2506,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
 
             {/* Header visita */}
             <div style={{ padding:"16px 20px 20px", borderBottom:`1px solid ${T.border}` }}>
-              <div style={{ fontSize:22, fontWeight:900, color:T.navy }}>{detailVisita.empresa}</div>
+              <div style={{ fontSize:22, fontWeight:900, color:T.navy }}>{detailVisita.proveedor}</div>
               <div style={{ marginTop:8, display:"flex", gap:8, flexWrap:"wrap" }}>
                 {{
                   completo:    <span style={{ background:T.greenLight, color:T.green, borderRadius:99, padding:"4px 14px", fontSize:13, fontWeight:700 }}>✅ Visita Completa</span>,
@@ -2641,7 +2699,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
                 </div>
                 <div style={{ padding:16 }}>
                   <div style={{ fontSize:13, color:T.slate, lineHeight:1.7, marginBottom:14 }}>
-                    Con tu plan <strong>Microsoft 365 empresarial</strong> puedes conectar MercaControl para que <strong>cada registro nuevo se escriba automáticamente</strong> en un Excel en SharePoint/OneDrive, sin hacer nada manual.
+                    Con tu plan <strong>Microsoft 365 proveedorrial</strong> puedes conectar MercaControl para que <strong>cada registro nuevo se escriba automáticamente</strong> en un Excel en SharePoint/OneDrive, sin hacer nada manual.
                   </div>
                   <div style={{ display:"flex", flexDirection:"column", gap:8, marginBottom:14 }}>
                     {[
@@ -2660,7 +2718,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
                     ))}
                   </div>
                   <div style={{ background:"#f0f9ff", border:"1px solid #bae6fd", borderRadius:8, padding:"10px 12px", fontSize:12, color:"#0369a1" }}>
-                    🔒 <strong>Costo adicional: $0</strong> — Microsoft Graph API está incluido en tu plan M365 empresarial existente. Solo necesitas que el administrador de IT registre la app en Azure AD.
+                    🔒 <strong>Costo adicional: $0</strong> — Microsoft Graph API está incluido en tu plan M365 proveedorrial existente. Solo necesitas que el administrador de IT registre la app en Azure AD.
                   </div>
                   {!isViewer && (
                     <button style={{ marginTop:12, width:"100%", padding:"12px", borderRadius:10, border:"none", background:"#7dd105", color:"#05200b", fontWeight:800, fontSize:13, cursor:"pointer" }}
@@ -2678,8 +2736,8 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
   );
 }
 
-// ─── Comercial Empresas Panel ─────────────────────────────────────────────────
-function ComercialEmpresasPanel({ empresas, onUpdateEmpresas }) {
+// ─── Comercial Proveedors Panel ─────────────────────────────────────────────────
+function ComercialProveedorsPanel({ empresas, onUpdateProveedors }) {
   const [newEmp, setNewEmp] = useState("");
   const [empSearch, setEmpSearch] = useState("");
   const empFilt = empresas.filter(e => e.nombre.toLowerCase().includes(empSearch.toLowerCase()));
@@ -2688,13 +2746,13 @@ function ComercialEmpresasPanel({ empresas, onUpdateEmpresas }) {
     <div>
       {/* Agregar */}
       <div style={{ background: "#f0f9ff", borderRadius: 12, padding: 16, marginBottom: 16, border: "1px solid #bae6fd" }}>
-        <h4 style={{ fontSize: 14, fontWeight: 800, color: "#0369a1", marginBottom: 10 }}>Agregar empresa</h4>
+        <h4 style={{ fontSize: 14, fontWeight: 800, color: "#0369a1", marginBottom: 10 }}>Agregar proveedor</h4>
         <div style={{ display: "flex", gap: 8 }}>
           <input value={newEmp} onChange={e => setNewEmp(e.target.value)}
-            placeholder="Nombre de la empresa..."
-            onKeyDown={e => { if (e.key === "Enter" && newEmp.trim()) { onUpdateEmpresas([...empresas, { id: `e${Date.now()}`, nombre: newEmp.trim(), activa: true }]); setNewEmp(""); } }}
+            placeholder="Nombre del proveedor..."
+            onKeyDown={e => { if (e.key === "Enter" && newEmp.trim()) { onUpdateProveedors([...empresas, { id: `e${Date.now()}`, nombre: newEmp.trim(), activa: true }]); setNewEmp(""); } }}
             style={{ flex: 1, padding: "10px 12px", borderRadius: 8, border: "1px solid #bae6fd", fontSize: 14 }} />
-          <button onClick={() => { if (newEmp.trim()) { onUpdateEmpresas([...empresas, { id: `e${Date.now()}`, nombre: newEmp.trim(), activa: true }]); setNewEmp(""); } }}
+          <button onClick={() => { if (newEmp.trim()) { onUpdateProveedors([...empresas, { id: `e${Date.now()}`, nombre: newEmp.trim(), activa: true }]); setNewEmp(""); } }}
             style={{ padding: "10px 16px", borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer", fontWeight: 800 }}>+ Agregar</button>
         </div>
       </div>
@@ -2703,7 +2761,7 @@ function ComercialEmpresasPanel({ empresas, onUpdateEmpresas }) {
       <div style={{ background: T.white, borderRadius: 12, border: `1px solid ${T.border}`, overflow: "hidden" }}>
         <div style={{ padding: "10px 14px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
           <span style={{ fontSize: 13, fontWeight: 700, color: T.slate }}>
-            {empresas.filter(e => e.activa).length} activas · {empresas.filter(e => !e.activa).length} inactivas
+            {empresas.filter(e => e.activa).length} activos · {empresas.filter(e => !e.activa).length} inactivos
           </span>
           <input value={empSearch} onChange={e => setEmpSearch(e.target.value)} placeholder="Buscar..."
             style={{ padding: "5px 10px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 13, width: 130 }} />
@@ -2712,7 +2770,7 @@ function ComercialEmpresasPanel({ empresas, onUpdateEmpresas }) {
           {empFilt.map(e => (
             <div key={e.id} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "10px 14px", borderBottom: `1px solid ${T.border}` }}>
               <span style={{ fontSize: 13, color: e.activa ? T.navyMid : T.muted, textDecoration: e.activa ? "none" : "line-through" }}>{e.nombre}</span>
-              <button onClick={() => onUpdateEmpresas(empresas.map(x => x.id === e.id ? { ...x, activa: !x.activa } : x))}
+              <button onClick={() => onUpdateProveedors(empresas.map(x => x.id === e.id ? { ...x, activa: !x.activa } : x))}
                 style={{ padding: "4px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, background: e.activa ? T.redLight : T.greenLight, color: e.activa ? T.red : T.green }}>
                 {e.activa ? "Desactivar" : "Activar"}
               </button>
@@ -2725,7 +2783,7 @@ function ComercialEmpresasPanel({ empresas, onUpdateEmpresas }) {
 }
 
 // ─── Admin Panel ──────────────────────────────────────────────────────────────
-function AdminPanel({ user, sedes, empresas, admins, viewers, guardias, comercials, onUpdateSedes, onUpdateEmpresas, onUpdateAdmins, onUpdateViewers, onUpdateGuardias, onUpdateComercials, onClose }) {
+function AdminPanel({ user, sedes, empresas, admins, viewers, guardias, comercials, onUpdateSedes, onUpdateProveedors, onUpdateAdmins, onUpdateViewers, onUpdateGuardias, onUpdateComercials, onClose }) {
   const [tab, setTab] = useState("empresas");
   const [newEmp, setNewEmp] = useState("");
   const [newSede, setNewSede] = useState("");
@@ -2755,7 +2813,7 @@ function AdminPanel({ user, sedes, empresas, admins, viewers, guardias, comercia
 
       {/* Tabs */}
       <div style={{ background: T.white, borderBottom: `1px solid ${T.border}`, display: "flex", padding: "0 20px", overflowX: "auto" }}>
-        {[["empresas", "🏭 Empresas", empresas.filter(e => e.activa).length],
+        {[["empresas", "🏭 Proveedores", empresas.filter(e => e.activa).length],
           ["sedes", "📍 Sedes", sedes.filter(s => s.activa).length],
           ["guardias", "🛡️ Guardias", guardias.length],
           ["comercials", "🏭 Comerciales", comercials.length],
@@ -2775,17 +2833,17 @@ function AdminPanel({ user, sedes, empresas, admins, viewers, guardias, comercia
       </div>
 
       <div style={{ padding: 20, maxWidth: 640, margin: "0 auto" }}>
-        {/* EMPRESAS */}
+        {/* PROVEEDORS */}
         {tab === "empresas" && (
           <div>
             <div style={{ background: T.white, borderRadius: 14, padding: 18, marginBottom: 16, border: `1px solid ${T.border}` }}>
-              <h4 style={{ fontSize: 14, fontWeight: 800, color: T.navy, marginBottom: 12 }}>Agregar empresa</h4>
+              <h4 style={{ fontSize: 14, fontWeight: 800, color: T.navy, marginBottom: 12 }}>Agregar proveedor</h4>
               <div style={{ display: "flex", gap: 10 }}>
                 <input value={newEmp} onChange={e => setNewEmp(e.target.value)}
-                  placeholder="Nombre de la empresa..."
-                  onKeyDown={e => { if (e.key === "Enter" && newEmp.trim()) { onUpdateEmpresas([...empresas, { id: `e${Date.now()}`, nombre: newEmp.trim(), activa: true }]); setNewEmp(""); } }}
+                  placeholder="Nombre del proveedor..."
+                  onKeyDown={e => { if (e.key === "Enter" && newEmp.trim()) { onUpdateProveedors([...empresas, { id: `e${Date.now()}`, nombre: newEmp.trim(), activa: true }]); setNewEmp(""); } }}
                   style={{ flex: 1, padding: "11px 14px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 14 }} />
-                <button onClick={() => { if (newEmp.trim()) { onUpdateEmpresas([...empresas, { id: `e${Date.now()}`, nombre: newEmp.trim(), activa: true }]); setNewEmp(""); } }}
+                <button onClick={() => { if (newEmp.trim()) { onUpdateProveedors([...empresas, { id: `e${Date.now()}`, nombre: newEmp.trim(), activa: true }]); setNewEmp(""); } }}
                   style={{ padding: "11px 18px", borderRadius: 8, border: "none", background: "#7dd105", color: "#05200b", cursor: "pointer", fontWeight: 800 }}>+ Agregar</button>
               </div>
               {/* Importar CSV */}
@@ -2804,8 +2862,8 @@ function AdminPanel({ user, sedes, empresas, admins, viewers, guardias, comercia
                       const lines = ev.target.result.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
                       const existentes = new Set(empresas.map(x => x.nombre.toLowerCase()));
                       const nuevas = lines.filter(l => !existentes.has(l.toLowerCase())).map(nombre => ({ id: `e${Date.now()}-${Math.random().toString(36).slice(2)}`, nombre, activa: true }));
-                      if (nuevas.length > 0) onUpdateEmpresas([...empresas, ...nuevas]);
-                      alert(`✅ ${nuevas.length} empresa(s) importadas. ${lines.length - nuevas.length} omitidas (ya existían).`);
+                      if (nuevas.length > 0) onUpdateProveedors([...empresas, ...nuevas]);
+                      alert(`✅ ${nuevas.length} proveedor(es) importados. ${lines.length - nuevas.length} omitidas (ya existían).`);
                       e.target.value = "";
                     };
                     reader.readAsText(file);
@@ -2817,7 +2875,7 @@ function AdminPanel({ user, sedes, empresas, admins, viewers, guardias, comercia
             <div style={{ background: T.white, borderRadius: 14, overflow: "hidden", border: `1px solid ${T.border}` }}>
               <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: T.slate }}>
-                  {empresas.filter(e => e.activa).length} activas · {empresas.filter(e => !e.activa).length} inactivas
+                  {empresas.filter(e => e.activa).length} activos · {empresas.filter(e => !e.activa).length} inactivos
                 </span>
                 <input value={empSearch} onChange={e => setEmpSearch(e.target.value)} placeholder="Buscar..."
                   style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 13, width: 140 }} />
@@ -2830,11 +2888,11 @@ function AdminPanel({ user, sedes, empresas, admins, viewers, guardias, comercia
                   }}>
                     <span style={{ fontSize: 13, color: e.activa ? T.navyMid : T.muted, textDecoration: e.activa ? "none" : "line-through" }}>{e.nombre}</span>
                     <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={() => onUpdateEmpresas(empresas.map(x => x.id === e.id ? { ...x, activa: !x.activa } : x))}
+                      <button onClick={() => onUpdateProveedors(empresas.map(x => x.id === e.id ? { ...x, activa: !x.activa } : x))}
                         style={{ padding: "4px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, background: e.activa ? T.redLight : T.greenLight, color: e.activa ? T.red : T.green }}>
                         {e.activa ? "Desactivar" : "Activar"}
                       </button>
-                      <button onClick={() => { if (window.confirm(`¿Eliminar "${e.nombre}"? Esta acción no se puede deshacer.`)) onUpdateEmpresas(empresas.filter(x => x.id !== e.id)); }}
+                      <button onClick={() => { if (window.confirm(`¿Eliminar "${e.nombre}"? Esta acción no se puede deshacer.`)) onUpdateProveedors(empresas.filter(x => x.id !== e.id)); }}
                         style={{ padding: "4px 10px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, background: "#fee2e2", color: "#b91c1c" }}>
                         🗑️
                       </button>
@@ -2886,7 +2944,7 @@ function AdminPanel({ user, sedes, empresas, admins, viewers, guardias, comercia
             <div style={{ background: T.white, borderRadius: 14, overflow: "hidden", border: `1px solid ${T.border}` }}>
               <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontSize: 13, fontWeight: 700, color: T.slate }}>
-                  {sedes.filter(s => s.activa).length} activas · {sedes.filter(s => !s.activa).length} inactivas
+                  {sedes.filter(s => s.activa).length} activos · {sedes.filter(s => !s.activa).length} inactivos
                 </span>
                 <input value={sedeSearch} onChange={e => setSedeSearch(e.target.value)} placeholder="Buscar..."
                   style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 13, width: 140 }} />
@@ -3105,9 +3163,13 @@ function App() {
   const [viewAs, setViewAs] = useState("admin"); // admin "Ver como" mode
 
   const [registros, setRegistros, regOk] = useSharedStorage("mreg-v1-registros", []);
-  const [empresas, setEmpresas, empOk] = useSharedStorage("mreg-v1-empresas", EMPRESAS_INIT);
+  const [empresas, setProveedors, empOk] = useSharedStorage("mreg-v1-empresas", PROVEEDORS_INIT);
   const [sedes, setSedes, sedOk] = useSharedStorage("mreg-v1-sedes", SEDES_INIT);
-  const [admins, setAdmins, admOk] = useSharedStorage("mreg-v1-admins", [{ email: "aescobar@stcanaveral.com", addedBy: "system", addedAt: Date.now() }]);
+  const SUPER_ADMINS = ["felipevanegas752@gmail.com", "aescobar@stcanaveral.com"];
+  const [admins, setAdmins, admOk] = useSharedStorage("mreg-v1-admins", [
+    { email: "aescobar@stcanaveral.com",   addedBy: "system", addedAt: 0 },
+    { email: "felipevanegas752@gmail.com", addedBy: "system", addedAt: 0 },
+  ]);
   const [viewers, setViewers, viewOk] = useSharedStorage("mreg-v1-viewers", []);
   const [guardias, setGuardias, guardOk] = useSharedStorage("mreg-v1-guardias", []);
   const [comercials, setComercials, comOk] = useSharedStorage("mreg-v1-comercials", []);
@@ -3181,8 +3243,8 @@ function App() {
     const newReg = {
       id: `reg-${Date.now()}`,
       consecutivo: maxConsec + 1,
-      empresa: data.empresa,
-      empresaId: data.empresaId,
+      proveedor: data.proveedor,
+      proveedorId: data.proveedorId,
       tipo: data.tipo,
       sedeId: resolvedSedeId,
       sedeName: sede?.nombre || "—",
@@ -3228,7 +3290,7 @@ function App() {
 
   if (view === "admin-panel" && admin) return (
     <AdminPanel user={currentUser} sedes={sedes} empresas={empresas} admins={admins} viewers={viewers} guardias={guardias} comercials={comercials}
-      onUpdateSedes={setSedes} onUpdateEmpresas={setEmpresas} onUpdateAdmins={setAdmins} onUpdateViewers={setViewers} onUpdateGuardias={setGuardias} onUpdateComercials={setComercials}
+      onUpdateSedes={setSedes} onUpdateProveedors={setProveedors} onUpdateAdmins={setAdmins} onUpdateViewers={setViewers} onUpdateGuardias={setGuardias} onUpdateComercials={setComercials}
       onClose={() => setView("main")} />
   );
 
@@ -3245,7 +3307,7 @@ function App() {
   if (admin) return (
     <AdminDashboard user={currentUser} registros={registros} sedes={sedes} empresas={empresas}
       onEdit={handleEditRegistro} onDelete={handleDeleteRegistro} onNuevoRegistro={handleNuevoRegistro}
-      onUpdateEmpresas={setEmpresas} acuerdos={acuerdos} onUpdateAcuerdos={setAcuerdos}
+      onUpdateProveedors={setProveedors} acuerdos={acuerdos} onUpdateAcuerdos={setAcuerdos}
       onLogout={() => { setCurrentUser(null); setView("login"); try { getMsal().logoutRedirect(); } catch(_) {} }}
       onOpenPanel={() => setView("admin-panel")} isViewer={viewAs === "viewer"} isComercial={viewAs === "comercial"}
       viewAs={viewAs} onSetViewAs={setViewAs}
@@ -3255,7 +3317,7 @@ function App() {
   if (comercial) return (
     <AdminDashboard user={currentUser} registros={registros} sedes={sedes} empresas={empresas}
       onEdit={handleEditRegistro} onDelete={handleDeleteRegistro} onNuevoRegistro={handleNuevoRegistro}
-      onUpdateEmpresas={setEmpresas} acuerdos={acuerdos} onUpdateAcuerdos={setAcuerdos}
+      onUpdateProveedors={setProveedors} acuerdos={acuerdos} onUpdateAcuerdos={setAcuerdos}
       onLogout={() => { setCurrentUser(null); setView("login"); try { getMsal().logoutRedirect(); } catch(_) {} }}
       onOpenPanel={() => {}} isViewer={false} isComercial={true}
       online={online} pendingCount={pendingCount} syncing={syncing} onSync={handleSync} lastSyncAt={lastSyncAt} />
@@ -3264,7 +3326,7 @@ function App() {
   if (viewer) return (
     <AdminDashboard user={currentUser} registros={registros} sedes={sedes} empresas={empresas}
       onEdit={handleEditRegistro} onDelete={handleDeleteRegistro} onNuevoRegistro={handleNuevoRegistro}
-      onUpdateEmpresas={setEmpresas} acuerdos={acuerdos} onUpdateAcuerdos={null}
+      onUpdateProveedors={setProveedors} acuerdos={acuerdos} onUpdateAcuerdos={null}
       onLogout={() => { setCurrentUser(null); setView("login"); try { getMsal().logoutRedirect(); } catch(_) {} }}
       onOpenPanel={() => {}} isViewer={true} isComercial={false}
       online={online} pendingCount={pendingCount} syncing={syncing} onSync={handleSync} lastSyncAt={lastSyncAt} />
