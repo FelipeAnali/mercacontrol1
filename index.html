@@ -949,13 +949,15 @@ function AcuerdosView({ acuerdos, empresas, sedes, onUpdateAcuerdos, canEdit, to
   };
 
   if (showForm || editando) return (
-    <AcuerdoForm
-      acuerdo={editando}
-      empresas={empActivas}
-      sedes={sedesActivas}
-      onSave={handleSave}
-      onCancel={() => { setShowForm(false); setEditando(null); }}
-    />
+    <div style={{ flex: 1, overflowY: "auto", padding: 20 }}>
+      <AcuerdoForm
+        acuerdo={editando}
+        empresas={empActivas}
+        sedes={sedesActivas}
+        onSave={handleSave}
+        onCancel={() => { setShowForm(false); setEditando(null); }}
+      />
+    </div>
   );
 
   return (
@@ -1133,7 +1135,7 @@ function AcuerdoForm({ acuerdo, empresas, sedes, onSave, onCancel }) {
         </div>
         <div style={{ display: "flex", gap: 10, flexWrap: "wrap" }}>
           {DIAS.map((d, i) => (
-            <div key={d} style={{ flex: "1 1 80px", textAlign: "center" }}>
+            <div key={d} style={{ flex: "1 1 70px", textAlign: "center" }}>
               <div style={{ fontSize: 11, fontWeight: 700, color: T.slate, marginBottom: 6 }}>{DIAS_SHORT[i]}</div>
               <input
                 type="number" min="0" max="24" step="0.5"
