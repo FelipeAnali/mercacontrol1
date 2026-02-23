@@ -2190,8 +2190,8 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
               background: T.brand, border: "none", color: T.navy, padding: "7px 14px", borderRadius: 8,
               cursor: "pointer", fontWeight: 800, fontSize: 12, display: "flex", alignItems: "center", gap: 5
             }}>
-              <span class="mc-btn-icon">+</span>
-              <span class="mc-btn-label"> Nuevo Registro</span>
+              <span className="mc-btn-icon">+</span>
+              <span className="mc-btn-label"> Nuevo Registro</span>
             </button>
           )}
           <button onClick={() => activeTab === "acuerdos" ? setShowAcuerdosExport(true) : setShowExportModal(true)} style={{
@@ -2200,23 +2200,23 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
             display: "flex", alignItems: "center", gap: 5
           }}>
             <span>📊</span>
-            <span class="mc-btn-label"> Excel</span>
+            <span className="mc-btn-label"> Excel</span>
           </button>
           {isComercial && (
             <button onClick={() => setShowComercialPanel(true)} style={{ background: "#0ea5e9", border: "none", color: "#fff", padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>
               <span>🏭</span>
-              <span class="mc-btn-label"> Proveedores</span>
+              <span className="mc-btn-label"> Proveedores</span>
             </button>
           )}
           {!isViewer && !isComercial && (
             <button onClick={onOpenPanel} style={{ background: "rgba(255,255,255,.1)", border: "none", color: "#fff", padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>
               <span>⚙️</span>
-              <span class="mc-btn-label"> Admin</span>
+              <span className="mc-btn-label"> Admin</span>
             </button>
           )}
           <button onClick={onLogout} style={{ background: "rgba(255,255,255,.1)", border: "none", color: T.muted, padding: "7px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>
-            <span class="mc-btn-label">Salir</span>
-            <span class="mc-btn-icon">↩</span>
+            <span className="mc-btn-label">Salir</span>
+            <span className="mc-btn-icon">↩</span>
           </button>
         </div>
       </div>
@@ -2232,7 +2232,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
               }} />
             )}
             <div data-sidebar="true" style={{
-              width: mobile ? Math.min(window.innerWidth * 0.82, 300) : tablet ? 220 : 260,
+              width: mobile ? "82vw" : tablet ? 220 : 260,
               background: T.white,
               borderRight: `1px solid ${T.border}`,
               padding: 20,
