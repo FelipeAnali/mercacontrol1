@@ -421,11 +421,45 @@ const LOGO_SRC = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' v
 
 // ─── Initial Data ─────────────────────────────────────────────────────────────
 const SEDES_INIT = [
-  "Norte","Sur","Este","Oeste","Centro","Laureles","Envigado","Itagüí",
-  "Bello","Sabaneta","La Estrella","Caldas","Copacabana","Girardota",
-  "Barbosa","Rionegro","La Ceja","El Retiro","Marinilla","Guarne",
-  "San Pedro","Pradera","Fontibón","Soacha","Zipaquirá"
-].map((n, i) => ({ id: `s${i+1}`, nombre: `Sede ${n}`, activa: true }));
+  "CC SANTIAGO PLAZA CARTAGO",
+  "CC SANTIAGO PLAZA GUADALUPE",
+  "CC SANTIAGO PLAZA VILLACOLOMBIA",
+  "CINEMAS SANTIAGO PLAZA ZARZAL",
+  "PROCESOS GANADO",
+  "PRODUCCION PANADERIA CEDI YUMBO",
+  "SC ARTE PANETERO VILLACOLOMBIA",
+  "SC ARTE PANETERO YUMBO",
+  "SC BODEGA CAVASA",
+  "SC BODEGA JUANCHITO PICARDIAS",
+  "SC BRISAS DE LOS ALAMOS",
+  "SC BUENOS AIRES",
+  "SC BUGA ALBERGUE",
+  "SC BUGA MERINO",
+  "SC CAVASA",
+  "SC CEDI YUMBO",
+  "SC CENTENARIO",
+  "SC CIUDAD COUNTRY",
+  "SC COOTRAEMCALI",
+  "SC EL INGENIO",
+  "SC EL LIMONAR",
+  "SC LA 34",
+  "SC LA PRIMERA",
+  "SC LOS PINOS",
+  "SC PALMIRA CENTRO",
+  "SC PALMITEX",
+  "SC PANCE",
+  "SC PASOANCHO",
+  "SC POLLO CAÑAVERAL GUADALUPE",
+  "SC PUNTO 14",
+  "SC ROLDANILLO",
+  "SC SANTA ELENA",
+  "SC TULUA",
+  "SC VILLAGORGONA",
+  "SC VILLAGORGONA 20 DE JULIO",
+  "SC VILLANUEVA",
+  "SC ZARZAL",
+  "SEDE ADMINISTRATIVA",
+].map((n, i) => ({ id: `s${i+1}`, nombre: n, activa: true }));
 
 const PROVEEDORS_INIT = [
   "Distribuidora ABC","Comercial XYZ","Proveedora Sur","Industrias Norte",
@@ -786,138 +820,127 @@ function NuevoRegistroForm({ user, sedes, empresas, registros, onSave, onCancel 
   const canSave = tipo && proveedorId && sedeIdSel;
 
   return (
-    <div style={{ minHeight: "100vh", background: T.bg, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
-      {/* Header */}
-      <div style={{ background: T.navy, padding: "16px 20px", display: "flex", alignItems: "center", gap: 14 }}>
+    <div style={{ height: "100dvh", background: T.bg, fontFamily: "'Plus Jakarta Sans', sans-serif", display: "flex", flexDirection: "column", overflow: "hidden" }}>
+      {/* Header — sticky, compacto */}
+      <div style={{ background: T.navy, padding: "12px 16px", display: "flex", alignItems: "center", gap: 12, flexShrink: 0 }}>
         <button onClick={onCancel} style={{
           background: "rgba(255,255,255,.1)", border: "none", color: "#fff",
-          width: 40, height: 40, borderRadius: 10, fontSize: 20, cursor: "pointer",
-          display: "flex", alignItems: "center", justifyContent: "center"
+          width: 36, height: 36, borderRadius: 10, fontSize: 18, cursor: "pointer",
+          display: "flex", alignItems: "center", justifyContent: "center", flexShrink: 0
         }}>←</button>
-        <div>
-          <div style={{ color: "#fff", fontSize: 18, fontWeight: 800 }}>Nuevo Registro</div>
-          <div style={{ color: T.muted, fontSize: 12 }}>
+        <div style={{ minWidth: 0 }}>
+          <div style={{ color: "#fff", fontSize: 16, fontWeight: 800 }}>Nuevo Registro</div>
+          <div style={{ color: T.muted, fontSize: 11, whiteSpace: "nowrap", overflow: "hidden", textOverflow: "ellipsis" }}>
             {isAdmin ? <span style={{ color: T.amber }}>👑 Admin · Selecciona la sede</span> : sedeMostrada?.nombre}
           </div>
         </div>
       </div>
 
-      <div style={{ padding: 20, maxWidth: 560, margin: "0 auto" }}>
-        {/* Auto data card */}
-        <div style={{ background: T.white, borderRadius: 14, overflow: "hidden", marginBottom: 20, border: `1px solid ${T.border}`, boxShadow: "0 1px 4px rgba(0,0,0,.05)" }}>
-          <div style={{ padding: "12px 16px", background: T.navyMid, display: "flex", alignItems: "center", gap: 8 }}>
-            <div className="pulse-dot" />
-            <span style={{ color: "#fff", fontSize: 12, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Datos automáticos</span>
-          </div>
-          <InfoRow label="📅 Fecha" value={fmtDate(now)} />
-          <InfoRow label="⏰ Hora" value={<span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 14 }}>{fmtTime(now)}</span>} />
-          <InfoRow label="🏢 Sede" value={sedeMostrada?.nombre || "—"} />
-          <InfoRow label="👤 Registrado por" value={user.nombre} />
-          <InfoRow label="📍 Ubicación GPS" value={gps ? `${gps.lat}, ${gps.lng}` : gpsMsg} />
-        </div>
+      {/* Contenido scrolleable */}
+      <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "16px 16px 24px" }}>
+        <div style={{ maxWidth: 640, margin: "0 auto" }}>
 
-        {/* Sede selector — solo admin */}
-        {isAdmin && (
-          <div style={{ marginBottom: 20 }}>
-            <p style={{ fontSize: 13, fontWeight: 700, color: T.navyMid, marginBottom: 10, textTransform: "uppercase", letterSpacing: .5 }}>
-              Sede *
-            </p>
-            <select value={sedeIdSel} onChange={e => setSedeIdSel(e.target.value)}
-              style={{
-                width: "100%", padding: "14px 16px", borderRadius: 12,
-                border: `2px solid ${sedeIdSel ? T.navyMid : T.border}`,
-                fontSize: 14, background: T.white, cursor: "pointer",
-                color: sedeIdSel ? T.navyMid : T.muted
-              }}>
-              <option value="">Seleccionar sede...</option>
-              {sedesActivas.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-            </select>
-          </div>
-        )}
+          {/* En landscape: 2 columnas — datos auto + formulario */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, alignItems: "start" }}>
 
-        {/* Tipo movimiento */}
-        <div style={{ marginBottom: 20 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: T.navyMid, marginBottom: 10, textTransform: "uppercase", letterSpacing: .5 }}>
-            Tipo de movimiento *
-          </p>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 12 }}>
-            {[
-              { v: "entrada", label: "↑ ENTRADA", bg: T.greenLight, border: T.green, text: T.green },
-              { v: "salida", label: "↓ SALIDA", bg: T.redLight, border: T.red, text: T.red },
-            ].map(opt => (
-              <button key={opt.v} onClick={() => setTipo(opt.v)} style={{
-                padding: "22px 10px", borderRadius: 14, cursor: "pointer", fontWeight: 900,
-                fontSize: 20, letterSpacing: 1,
-                border: `2px solid ${tipo === opt.v ? opt.border : T.border}`,
-                background: tipo === opt.v ? opt.bg : T.white,
-                color: tipo === opt.v ? opt.text : T.muted,
-                transition: "all .15s",
-                boxShadow: tipo === opt.v ? `0 4px 16px ${opt.border}30` : "none"
-              }}>{opt.label}</button>
-            ))}
-          </div>
-        </div>
+            {/* Columna izq: datos automáticos */}
+            <div>
+              <div style={{ background: T.white, borderRadius: 14, overflow: "hidden", border: `1px solid ${T.border}`, boxShadow: "0 1px 4px rgba(0,0,0,.05)" }}>
+                <div style={{ padding: "10px 16px", background: T.navyMid, display: "flex", alignItems: "center", gap: 8 }}>
+                  <div className="pulse-dot" />
+                  <span style={{ color: "#fff", fontSize: 11, fontWeight: 700, textTransform: "uppercase", letterSpacing: 1 }}>Datos automáticos</span>
+                </div>
+                <InfoRow label="📅 Fecha" value={fmtDate(now)} />
+                <InfoRow label="⏰ Hora" value={<span style={{ fontFamily: "'JetBrains Mono', monospace", fontSize: 14 }}>{fmtTime(now)}</span>} />
+                <InfoRow label="🏢 Sede" value={sedeMostrada?.nombre || "—"} />
+                <InfoRow label="👤 Por" value={user.nombre} />
+                <InfoRow label="📍 GPS" value={gps ? `${gps.lat}, ${gps.lng}` : gpsMsg} />
+              </div>
+            </div>
 
-        {/* Proveedor */}
-        <div style={{ marginBottom: 28 }}>
-          <p style={{ fontSize: 13, fontWeight: 700, color: T.navyMid, marginBottom: 10, textTransform: "uppercase", letterSpacing: .5 }}>
-            Proveedor *
-          </p>
-          <div style={{ position: "relative" }}>
-            <input
-              value={busqueda}
-              onChange={e => { setBusqueda(e.target.value); setProveedorId(""); setShowList(true); }}
-              onFocus={() => setShowList(true)}
-              placeholder="Buscar proveedor..."
-              style={{
-                width: "100%", padding: "14px 16px", borderRadius: 12,
-                border: `2px solid ${proveedorId ? T.navyMid : T.border}`,
-                fontSize: 14, outline: "none", background: T.white, fontFamily: "'Plus Jakarta Sans', sans-serif"
-              }}
-            />
-            {showList && busqueda && !proveedorId && (
-              <div style={{
-                position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50,
-                background: T.white, border: `1px solid ${T.border}`, borderRadius: 12,
-                maxHeight: 240, overflowY: "auto", boxShadow: "0 8px 32px rgba(0,0,0,.12)",
-                marginTop: 4
-              }}>
-                {empFiltradas.length === 0 && (
-                  <div style={{ padding: 16, textAlign: "center", color: T.muted, fontSize: 13 }}>Sin resultados</div>
+            {/* Columna der: campos del formulario */}
+            <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+
+              {/* Sede selector — solo admin */}
+              {isAdmin && (
+                <div>
+                  <p style={{ fontSize: 12, fontWeight: 700, color: T.navyMid, marginBottom: 8, textTransform: "uppercase", letterSpacing: .5 }}>Sede *</p>
+                  <select value={sedeIdSel} onChange={e => setSedeIdSel(e.target.value)}
+                    style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: `2px solid ${sedeIdSel ? T.navyMid : T.border}`, fontSize: 14, background: T.white, cursor: "pointer", color: sedeIdSel ? T.navyMid : T.muted }}>
+                    <option value="">Seleccionar sede...</option>
+                    {sedesActivas.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+                  </select>
+                </div>
+              )}
+
+              {/* Tipo movimiento */}
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 700, color: T.navyMid, marginBottom: 8, textTransform: "uppercase", letterSpacing: .5 }}>Tipo de movimiento *</p>
+                <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 10 }}>
+                  {[
+                    { v: "entrada", label: "↑ ENTRADA", bg: T.greenLight, border: T.green, text: T.green },
+                    { v: "salida",  label: "↓ SALIDA",  bg: T.redLight,   border: T.red,   text: T.red },
+                  ].map(opt => (
+                    <button key={opt.v} onClick={() => setTipo(opt.v)} style={{
+                      padding: "18px 10px", borderRadius: 12, cursor: "pointer", fontWeight: 900,
+                      fontSize: 17, letterSpacing: 1,
+                      border: `2px solid ${tipo === opt.v ? opt.border : T.border}`,
+                      background: tipo === opt.v ? opt.bg : T.white,
+                      color: tipo === opt.v ? opt.text : T.muted,
+                      transition: "all .15s",
+                      boxShadow: tipo === opt.v ? `0 4px 16px ${opt.border}30` : "none"
+                    }}>{opt.label}</button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Proveedor */}
+              <div>
+                <p style={{ fontSize: 12, fontWeight: 700, color: T.navyMid, marginBottom: 8, textTransform: "uppercase", letterSpacing: .5 }}>Proveedor *</p>
+                <div style={{ position: "relative" }}>
+                  <input
+                    value={busqueda}
+                    onChange={e => { setBusqueda(e.target.value); setProveedorId(""); setShowList(true); }}
+                    onFocus={() => setShowList(true)}
+                    placeholder="Buscar proveedor..."
+                    style={{ width: "100%", padding: "12px 14px", borderRadius: 12, border: `2px solid ${proveedorId ? T.navyMid : T.border}`, fontSize: 14, outline: "none", background: T.white, fontFamily: "'Plus Jakarta Sans', sans-serif" }}
+                  />
+                  {showList && busqueda && !proveedorId && (
+                    <div style={{ position: "absolute", top: "100%", left: 0, right: 0, zIndex: 50, background: T.white, border: `1px solid ${T.border}`, borderRadius: 12, maxHeight: 200, overflowY: "auto", boxShadow: "0 8px 32px rgba(0,0,0,.12)", marginTop: 4 }}>
+                      {empFiltradas.length === 0 && <div style={{ padding: 14, textAlign: "center", color: T.muted, fontSize: 13 }}>Sin resultados</div>}
+                      {empFiltradas.map(e => (
+                        <div key={e.id} onClick={() => { setProveedorId(e.id); setBusqueda(e.nombre); setShowList(false); }}
+                          style={{ padding: "11px 16px", cursor: "pointer", fontSize: 14, borderBottom: `1px solid ${T.border}`, transition: "background .1s" }}
+                          onMouseEnter={ev => ev.target.style.background = T.bg}
+                          onMouseLeave={ev => ev.target.style.background = ""}
+                        >{e.nombre}</div>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                {empSel && (
+                  <div style={{ marginTop: 8, padding: "10px 14px", background: T.navyMid, borderRadius: 10, color: "#fff", fontSize: 13, fontWeight: 600 }}>
+                    ✓ {empSel.nombre}
+                  </div>
                 )}
-                {empFiltradas.map(e => (
-                  <div key={e.id} onClick={() => { setProveedorId(e.id); setBusqueda(e.nombre); setShowList(false); }}
-                    style={{
-                      padding: "12px 16px", cursor: "pointer", fontSize: 14,
-                      borderBottom: `1px solid ${T.border}`,
-                      transition: "background .1s"
-                    }}
-                    onMouseEnter={ev => ev.target.style.background = T.bg}
-                    onMouseLeave={ev => ev.target.style.background = ""}
-                  >{e.nombre}</div>
-                ))}
               </div>
-            )}
-            {empSel && (
-              <div style={{ marginTop: 8, padding: "10px 14px", background: T.navyMid, borderRadius: 10, display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ color: "#fff", fontSize: 14, fontWeight: 600 }}>✓ {empSel.nombre}</span>
-                <button onClick={() => { setProveedorId(""); setBusqueda(""); }} style={{ background: "none", border: "none", color: T.amber, cursor: "pointer", fontSize: 18 }}>×</button>
-              </div>
-            )}
-          </div>
-        </div>
 
-        <button onClick={handleSave} disabled={!canSave || saving} style={{
-          width: "100%", padding: "18px", borderRadius: 14, border: "none",
-          background: canSave ? "#7dd105" : T.border,
-          color: canSave ? "#05200b" : T.muted,
-          fontSize: 16, fontWeight: 800, cursor: canSave ? "pointer" : "not-allowed",
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
-          boxShadow: canSave ? "0 4px 20px rgba(125,209,5,.35)" : "none",
-          transition: "all .2s"
-        }}>
-          {saving ? <Spinner /> : "✅"} {saving ? "Guardando..." : "Confirmar Registro"}
-        </button>
+              {/* Botón guardar */}
+              <button onClick={handleSave} disabled={!canSave || saving} style={{
+                width: "100%", padding: "16px", borderRadius: 14, border: "none",
+                background: canSave ? "#7dd105" : T.border,
+                color: canSave ? "#05200b" : T.muted,
+                fontSize: 15, fontWeight: 800, cursor: canSave ? "pointer" : "not-allowed",
+                display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
+                boxShadow: canSave ? "0 4px 20px rgba(125,209,5,.35)" : "none",
+                transition: "all .2s"
+              }}>
+                {saving ? <Spinner /> : "✅"} {saving ? "Guardando..." : "Confirmar Registro"}
+              </button>
+
+            </div>{/* fin col der */}
+          </div>{/* fin grid */}
+        </div>
       </div>
     </div>
   );
