@@ -83,6 +83,13 @@
     button, select, input { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
     input, select { font-size: 16px !important; } /* evita zoom en iOS */
 
+    /* ── Formulario Nuevo Registro: 2 cols solo en landscape móvil/tablet ── */
+    @media (max-height: 600px) and (orientation: landscape) {
+      #mc-reg-grid {
+        grid-template-columns: 1fr 1fr !important;
+      }
+    }
+
     /* ════════════════════════════════
        MÓVIL (< 640px)
     ════════════════════════════════ */
@@ -840,8 +847,8 @@ function NuevoRegistroForm({ user, sedes, empresas, registros, onSave, onCancel 
       <div style={{ flex: 1, overflowY: "auto", WebkitOverflowScrolling: "touch", padding: "16px 16px 24px" }}>
         <div style={{ maxWidth: 640, margin: "0 auto" }}>
 
-          {/* En landscape: 2 columnas — datos auto + formulario */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(260px, 1fr))", gap: 16, alignItems: "start" }}>
+          {/* Grid: 2 cols solo en landscape móvil/tablet, columna única en desktop */}
+          <div id="mc-reg-grid" style={{ display: "grid", gridTemplateColumns: "1fr", gap: 16, alignItems: "start" }}>
 
             {/* Columna izq: datos automáticos */}
             <div>
