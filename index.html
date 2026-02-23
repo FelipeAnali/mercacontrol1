@@ -73,6 +73,123 @@
     }
     @keyframes spin { to { transform: rotate(360deg); } }
   </style>
+
+  <!-- ═══════════════════════════════════════════════════════════
+       RESPONSIVE CSS — MercaControl
+       Cubre: móvil portrait/landscape, tablet, desktop
+  ═══════════════════════════════════════════════════════════ -->
+  <style>
+    /* ── Base touch improvements ── */
+    button, select, input { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
+    input, select { font-size: 16px !important; } /* evita zoom en iOS */
+
+    /* ════════════════════════════════
+       MÓVIL (< 640px)
+    ════════════════════════════════ */
+    @media (max-width: 639px) {
+
+      /* ── Top bar: ocultar labels de botones, solo iconos ── */
+      #mc-topbar-title { display: none !important; }
+      #mc-viewas        { display: none !important; }
+      .mc-btn-label     { display: none !important; }
+      .mc-btn-icon      { display: inline !important; }
+      #mc-topbar        { padding: 8px 10px !important; }
+      #mc-topbar-actions { gap: 4px !important; }
+      #mc-topbar-actions button { padding: 8px 10px !important; min-width: 36px; font-size: 16px !important; }
+
+      /* ── Tabs: compactos ── */
+      #mc-tabs { padding: 0 6px !important; }
+      #mc-tabs button { padding: 10px 10px !important; font-size: 12px !important; white-space: nowrap; }
+
+      /* ── Sidebar: drawer desde la izquierda ── */
+      [data-sidebar="true"] {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        bottom: 0 !important;
+        width: min(85vw, 320px) !important;
+        z-index: 200 !important;
+        box-shadow: 4px 0 24px rgba(0,0,0,.4) !important;
+        overflow-y: auto !important;
+      }
+
+      /* ── Listas de movimientos: compactar ── */
+      [data-reg-row="true"] { padding: 10px 12px !important; }
+      [data-reg-row="true"] .reg-number { display: none; }
+
+      /* ── Formulario nuevo registro: full width ── */
+      [data-form="true"] { padding: 14px !important; }
+
+      /* ── Cumplimiento: tabla con scroll horizontal ── */
+      [data-cumpl-table="true"] { overflow-x: auto !important; }
+
+      /* ── Security view: ajustes ── */
+      [data-sec-header="true"] { padding: 14px 14px !important; }
+      [data-sec-sede="true"] { font-size: 17px !important; }
+      [data-sec-time="true"] { font-size: 26px !important; }
+      [data-sec-btn="true"] { padding: 14px !important; font-size: 17px !important; }
+
+      /* ── AdminPanel: full screen ── */
+      [data-panel="true"] { border-radius: 0 !important; min-height: 100vh !important; }
+
+      /* ── Modales: bottom sheet ── */
+      [data-modal="true"] {
+        border-radius: 20px 20px 0 0 !important;
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        max-height: 90vh !important;
+        overflow-y: auto !important;
+        margin: 0 !important;
+      }
+
+      /* ── Acuerdos form: stack columnas ── */
+      [data-acuerdo-grid="true"] {
+        grid-template-columns: repeat(4, 1fr) !important;
+      }
+
+      /* ── Grids de KPI: 2 columnas en móvil ── */
+      [data-kpi-grid="true"] {
+        grid-template-columns: repeat(2, 1fr) !important;
+      }
+    }
+
+    /* ════════════════════════════════
+       TABLET (640px – 1023px)
+    ════════════════════════════════ */
+    @media (min-width: 640px) and (max-width: 1023px) {
+
+      /* ViewAs se oculta en tablet para ahorrar espacio */
+      #mc-viewas { display: none !important; }
+      .mc-btn-label { display: none !important; }
+      .mc-btn-icon  { display: inline !important; }
+      #mc-topbar-actions button { padding: 7px 10px !important; }
+
+      /* Sidebar más angosto */
+      [data-sidebar="true"] { width: 200px !important; }
+
+      /* Tabs más compactos */
+      #mc-tabs button { padding: 11px 14px !important; font-size: 13px !important; }
+    }
+
+    /* ════════════════════════════════
+       LANDSCAPE móvil (alto < 500px)
+    ════════════════════════════════ */
+    @media (max-height: 499px) and (max-width: 900px) {
+      [data-sec-header="true"] { padding: 8px 14px !important; }
+      [data-sec-stats="true"]  { margin-top: 6px !important; }
+      [data-sec-time="true"]   { font-size: 20px !important; }
+      [data-sec-btn="true"]    { padding: 10px !important; font-size: 15px !important; margin-bottom: 10px !important; }
+      #mc-topbar               { padding: 6px 12px !important; }
+    }
+
+    /* ── Siempre mostrar .mc-btn-icon en desktop ── */
+    @media (min-width: 1024px) {
+      .mc-btn-icon { display: none !important; }
+      .mc-btn-label { display: inline !important; }
+    }
+  </style>
 </head>
 <body>
   <!-- Splash screen -->
@@ -333,7 +450,25 @@ const T = {
   blue:       "#0ea5e9",
 };
 
-// ─── Online/Offline Hook ──────────────────────────────────────────────────────
+// ─── Responsive Hook ──────────────────────────────────────────────────────────
+function useBreakpoint() {
+  const [bp, setBp] = useState(() => {
+    const w = window.innerWidth;
+    return { w, mobile: w < 640, tablet: w >= 640 && w < 1024, desktop: w >= 1024 };
+  });
+  useEffect(() => {
+    const fn = () => {
+      const w = window.innerWidth;
+      setBp({ w, mobile: w < 640, tablet: w >= 640 && w < 1024, desktop: w >= 1024 });
+    };
+    window.addEventListener("resize", fn);
+    window.addEventListener("orientationchange", fn);
+    return () => { window.removeEventListener("resize", fn); window.removeEventListener("orientationchange", fn); };
+  }, []);
+  return bp;
+}
+
+
 function useOnlineStatus() {
   const [online, setOnline] = useState(() => navigator.onLine);
   useEffect(() => {
@@ -594,6 +729,7 @@ function LoginScreen({ onLogin, admins, viewers, sedes, guardias, comercials }) 
 
 // ─── Nuevo Registro Form ───────────────────────────────────────────────────────
 function NuevoRegistroForm({ user, sedes, empresas, registros, onSave, onCancel }) {
+  const { mobile } = useBreakpoint();
   const [tipo, setTipo] = useState("");
   const [proveedorId, setProveedorId] = useState("");
   const [busqueda, setBusqueda] = useState("");
@@ -777,6 +913,7 @@ function NuevoRegistroForm({ user, sedes, empresas, registros, onSave, onCancel 
 function SecurityView({ user, sedes, empresas, registros, onNuevoRegistro, onLogout, online, pendingCount, syncing, onSync, viewAsBar }) {
   const [showForm, setShowForm] = useState(false);
   const [now, setNow] = useState(new Date());
+  const { mobile, tablet } = useBreakpoint();
   useEffect(() => { const t = setInterval(() => setNow(new Date()), 1000); return () => clearInterval(t); }, []);
 
   const sede = sedes.find(s => s.id === user.sedeId);
@@ -801,14 +938,14 @@ function SecurityView({ user, sedes, empresas, registros, onNuevoRegistro, onLog
             <div style={{ marginBottom: 4 }}>
               <img src={LOGO_SRC} alt="Cañaveral" style={{ height: 30, width: 30, borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(255,255,255,.15)" }} />
             </div>
-            <div style={{ color: "#fff", fontSize: 22, fontWeight: 900 }}>{sede?.nombre || "Mi Sede"}</div>
-            <div style={{ color: T.muted, fontSize: 13, marginTop: 2 }}>👤 {user.nombre}</div>
+            <div data-sec-sede="true" data-sec-sede="true" style={{ color: "#fff", fontSize: 22, fontWeight: 900 }}>{sede?.nombre || "Mi Sede"}</div>
+            <div style={{ color: T.muted, fontSize: 12, marginTop: 2 }}>👤 {user.nombre}</div>
           </div>
           <div style={{ textAlign: "right" }}>
             <div style={{ color: "#fff", fontSize: 36, fontWeight: 900, fontFamily: "'JetBrains Mono', monospace", lineHeight: 1 }}>
               {now.toLocaleTimeString("es-CO", { hour: "2-digit", minute: "2-digit" })}
             </div>
-            <div style={{ color: T.muted, fontSize: 12, marginTop: 2 }}>
+            <div style={{ color: T.muted, fontSize: 11, marginTop: 2 }}>
               {now.toLocaleDateString("es-CO", { weekday: "short", day: "2-digit", month: "short" })}
             </div>
             <button onClick={onLogout} style={{
@@ -819,7 +956,7 @@ function SecurityView({ user, sedes, empresas, registros, onNuevoRegistro, onLog
         </div>
 
         {/* Stats */}
-        <div style={{ display: "flex", gap: 12, marginTop: 16 }}>
+        <div style={{ display: "flex", gap: 12, marginTop: 12 }}>
           {[
             { label: "Total hoy", val: hoy.length, color: "#fff" },
             { label: "Entradas", val: hoy.filter(r => r.tipo === "entrada").length, color: "#6ee7b7" },
@@ -837,15 +974,15 @@ function SecurityView({ user, sedes, empresas, registros, onNuevoRegistro, onLog
         <button onClick={() => setShowForm(true)} style={{
           width: "100%", padding: "22px", borderRadius: 16, border: "none",
           background: `linear-gradient(135deg, ${T.brand} 0%, #5aad00 100%)`,
-          color: T.navy, fontSize: 22, fontWeight: 900, cursor: "pointer",
-          boxShadow: "0 6px 24px rgba(245,158,11,.4)",
-          display: "flex", alignItems: "center", justifyContent: "center", gap: 14,
+          color: T.navy, fontSize: 22, fontWeight: 900, cursor: "pointer", /* sec-btn */
+          boxShadow: "0 6px 24px rgba(125,209,5,.3)",
+          display: "flex", alignItems: "center", justifyContent: "center", gap: 10,
           marginBottom: 24, letterSpacing: .5
         }}>
           <span style={{ fontSize: 32 }}>+</span> NUEVO REGISTRO
         </button>
 
-        <h3 style={{ fontSize: 14, fontWeight: 700, color: T.slate, textTransform: "uppercase", letterSpacing: 1, marginBottom: 12 }}>
+        <h3 style={{ fontSize: 13, fontWeight: 700, color: T.slate, textTransform: "uppercase", letterSpacing: 1, marginBottom: 10 }}>
           Movimientos de hoy
         </h3>
 
@@ -1028,6 +1165,7 @@ function fmtWeekLabel(mon, sun) {
 }
 
 function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
+  const { mobile } = useBreakpoint();
   const [modo,       setModo]       = useState("semana");
   const [weekOffset, setWeekOffset] = useState(0);
   const [mesOffset,  setMesOffset]  = useState(0);
@@ -1229,19 +1367,29 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
         semanaData.filas.length === 0
           ? <EmptyState />
           : <div style={{ background:T.white, borderRadius:14, border:`1px solid ${T.border}`, overflow:"hidden" }}>
-              <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 80px 80px 1fr 70px", gap:8, padding:"10px 16px", background:T.bg, borderBottom:`1px solid ${T.border}`, fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase" }}>
-                <div>Proveedor</div><div>Sede</div><div style={{textAlign:"right"}}>Acordado</div><div style={{textAlign:"right"}}>Real</div><div style={{textAlign:"center"}}>Progreso</div><div style={{textAlign:"center"}}>%</div>
+              <div style={{ display:"grid", gridTemplateColumns: mobile?"1fr 1fr 55px 55px":"1fr 1fr 80px 80px 1fr 70px", gap:8, padding:"10px 16px", background:T.bg, borderBottom:`1px solid ${T.border}`, fontSize:11, fontWeight:700, color:T.muted, textTransform:"uppercase" }}>
+                <div>Proveedor</div><div>Sede</div><div style={{textAlign:"right"}}>Acord.</div><div style={{textAlign:"right"}}>Real</div>
+                {!mobile&&<div style={{textAlign:"center"}}>Progreso</div>}
+                {!mobile&&<div style={{textAlign:"center"}}>%</div>}
               </div>
               {semanaData.filas.map(f=>(
-                <div key={f.key} style={{ display:"grid", gridTemplateColumns:"1fr 1fr 80px 80px 1fr 70px", gap:8, padding:"11px 16px", borderBottom:`1px solid ${T.border}`, alignItems:"center", background:pctBg(f.pct) }}>
-                  <div style={{ fontSize:13,fontWeight:700,color:T.navy,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{f.emp?.nombre||"—"}</div>
-                  <div style={{ fontSize:12,color:T.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>📍{f.sede?.nombre||"—"}</div>
-                  <div style={{ textAlign:"right",fontSize:13,color:T.slate }}>{fmt1(f.acordado)}h</div>
-                  <div style={{ textAlign:"right",fontSize:13,fontWeight:700,color:f.real>0?"#0ea5e9":T.muted }}>{fmt1(f.real)}h</div>
-                  <div style={{ position:"relative",height:8,borderRadius:99,background:T.border,overflow:"hidden" }}>
+                <div key={f.key} style={{ display:"grid", gridTemplateColumns: mobile?"1fr 1fr 55px 55px":"1fr 1fr 80px 80px 1fr 70px", gap:8, padding:"10px 16px", borderBottom:`1px solid ${T.border}`, alignItems:"center", background:pctBg(f.pct) }}>
+                  <div style={{ fontSize:mobile?11:13,fontWeight:700,color:T.navy,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>{f.emp?.nombre||"—"}</div>
+                  <div style={{ fontSize:mobile?10:12,color:T.muted,overflow:"hidden",textOverflow:"ellipsis",whiteSpace:"nowrap" }}>📍{f.sede?.nombre||"—"}</div>
+                  <div style={{ textAlign:"right",fontSize:12,color:T.slate }}>{fmt1(f.acordado)}h</div>
+                  <div style={{ textAlign:"right",fontSize:12,fontWeight:700,color:f.real>0?"#0ea5e9":T.muted }}>{fmt1(f.real)}h</div>
+                  {!mobile&&<div style={{ position:"relative",height:8,borderRadius:99,background:T.border,overflow:"hidden" }}>
                     <div style={{ position:"absolute",left:0,top:0,bottom:0,borderRadius:99,width:`${Math.min(100,f.pct||0)}%`,background:pctColor(f.pct),transition:"width .4s" }}/>
-                  </div>
-                  <div style={{textAlign:"center"}}><PctCell pct={f.pct}/></div>
+                  </div>}
+                  {!mobile&&<div style={{textAlign:"center"}}><PctCell pct={f.pct}/></div>}
+                  {mobile&&<div style={{gridColumn:"1/-1"}}>
+                    <div style={{display:"flex",justifyContent:"space-between",alignItems:"center",gap:8}}>
+                      <div style={{ flex:1,position:"relative",height:6,borderRadius:99,background:T.border,overflow:"hidden" }}>
+                        <div style={{ position:"absolute",left:0,top:0,bottom:0,borderRadius:99,width:`${Math.min(100,f.pct||0)}%`,background:pctColor(f.pct) }}/>
+                      </div>
+                      <PctCell pct={f.pct} small/>
+                    </div>
+                  </div>}
                 </div>
               ))}
             </div>
@@ -1791,7 +1939,6 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
   const [filterDateTo, setFilterDateTo]   = useState("");
   const [detailReg, setDetailReg] = useState(null);
   const [editReg, setEditReg] = useState(null);
-  const [sidebarOpen, setSidebarOpen] = useState(true);
   const [showForm, setShowForm] = useState(false);
   const [showExportModal, setShowExportModal] = useState(false);
   const [showAcuerdosExport, setShowAcuerdosExport] = useState(false);
@@ -1799,8 +1946,10 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
   const [exporting, setExporting] = useState(false);
   const [activeTab, setActiveTab] = useState("movimientos");
   const [detailVisita, setDetailVisita] = useState(null);
-  const [filterTipo, setFilterTipo] = useState(""); // "entrada" | "salida" | ""
-  const [filterStatus, setFilterStatus] = useState(""); // "completo" | "adentro" | "solo_salida" | ""
+  const [filterTipo, setFilterTipo] = useState("");
+  const [filterStatus, setFilterStatus] = useState("");
+
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
   const sedesEnUso = sedes.filter(s => s.activa && registros.some(r => r.sedeId === s.id));
   const empresasEnUso = empresas.filter(e => e.activa && registros.some(r => r.proveedorId === e.id));
@@ -1987,11 +2136,11 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
         </div>
       )}
       {/* Top bar */}
-      <div style={{ background: T.navy, padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0, gap: 10 }}>
+      <div id="mc-topbar" style={{ background: T.navy, padding: "10px 16px", display: "flex", justifyContent: "space-between", alignItems: "center", flexShrink: 0, gap: 10 }}>
         <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
           <button onClick={() => setSidebarOpen(!sidebarOpen)} style={{ background: "rgba(255,255,255,.1)", border: "none", color: "#fff", width: 32, height: 32, borderRadius: 8, cursor: "pointer", fontSize: 14 }}>☰</button>
           <img src={LOGO_SRC} alt="Cañaveral" style={{ height: 30, width: 30, borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(255,255,255,.2)" }} />
-          <div>
+          <div id="mc-topbar-title">
             <div style={{ color: "#fff", fontSize: 14, fontWeight: 800 }}>Control de Mercaderistas</div>
             <div style={{ color: T.muted, fontSize: 11, display: "flex", alignItems: "center", gap: 6 }}>
               {isViewer ? <><span style={{ background: "#7c3aed", color: "#fff", borderRadius: 99, padding: "1px 6px", fontSize: 9, fontWeight: 800 }}>👁️ ESPECTADOR</span> {user.nombre}</>
@@ -2004,9 +2153,8 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
               </span>
             </div>
           </div>
-          {/* ViewAs inline — solo admin */}
           {onSetViewAs && (
-            <div style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 8, paddingLeft: 12, borderLeft: "1px solid rgba(255,255,255,.15)" }}>
+            <div id="mc-viewas" style={{ display: "flex", alignItems: "center", gap: 6, marginLeft: 8, paddingLeft: 12, borderLeft: "1px solid rgba(255,255,255,.15)" }}>
               <span style={{ color: "rgba(255,255,255,.4)", fontSize: 10, fontWeight: 700 }}>VER COMO</span>
               {[["admin","👑"],["viewer","👁️"],["comercial","🏭"],["security","🛡️"]].map(([k,ic]) => (
                 <button key={k} onClick={() => onSetViewAs(k)} style={{
@@ -2018,32 +2166,47 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
             </div>
           )}
         </div>
-        <div style={{ display: "flex", gap: 6 }}>
+        <div id="mc-topbar-actions" style={{ display: "flex", gap: 6 }}>
           {!isViewer && !isComercial && (
             <button onClick={() => setShowForm(true)} style={{
               background: T.brand, border: "none", color: T.navy, padding: "7px 14px", borderRadius: 8,
               cursor: "pointer", fontWeight: 800, fontSize: 12, display: "flex", alignItems: "center", gap: 5
-            }}>+ Nuevo Registro</button>
+            }}>
+              <span class="mc-btn-icon">+</span>
+              <span class="mc-btn-label"> Nuevo Registro</span>
+            </button>
           )}
           <button onClick={() => activeTab === "acuerdos" ? setShowAcuerdosExport(true) : setShowExportModal(true)} style={{
             background: "#16a34a", border: "none", color: "#fff",
             padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12,
             display: "flex", alignItems: "center", gap: 5
-          }}>📊 Excel</button>
+          }}>
+            <span>📊</span>
+            <span class="mc-btn-label"> Excel</span>
+          </button>
           {isComercial && (
-            <button onClick={() => setShowComercialPanel(true)} style={{ background: "#0ea5e9", border: "none", color: "#fff", padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>🏭 Proveedores</button>
+            <button onClick={() => setShowComercialPanel(true)} style={{ background: "#0ea5e9", border: "none", color: "#fff", padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>
+              <span>🏭</span>
+              <span class="mc-btn-label"> Proveedores</span>
+            </button>
           )}
           {!isViewer && !isComercial && (
-            <button onClick={onOpenPanel} style={{ background: "rgba(255,255,255,.1)", border: "none", color: "#fff", padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>⚙️ Admin</button>
+            <button onClick={onOpenPanel} style={{ background: "rgba(255,255,255,.1)", border: "none", color: "#fff", padding: "7px 14px", borderRadius: 8, cursor: "pointer", fontWeight: 700, fontSize: 12 }}>
+              <span>⚙️</span>
+              <span class="mc-btn-label"> Admin</span>
+            </button>
           )}
-          <button onClick={onLogout} style={{ background: "rgba(255,255,255,.1)", border: "none", color: T.muted, padding: "7px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>Salir</button>
+          <button onClick={onLogout} style={{ background: "rgba(255,255,255,.1)", border: "none", color: T.muted, padding: "7px 12px", borderRadius: 8, cursor: "pointer", fontSize: 12 }}>
+            <span class="mc-btn-label">Salir</span>
+            <span class="mc-btn-icon">↩</span>
+          </button>
         </div>
       </div>
 
       <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-        {/* Sidebar — oculto en tab Acuerdos y Cumplimiento */}
+        {/* Sidebar */}
         {sidebarOpen && activeTab !== "acuerdos" && activeTab !== "cumplimiento" && (
-          <div style={{ width: 260, background: T.white, borderRight: `1px solid ${T.border}`, padding: 20, overflowY: "auto", flexShrink: 0 }}>
+          <div data-sidebar="true" style={{ width: 260, background: T.white, borderRight: `1px solid ${T.border}`, padding: 20, overflowY: "auto", flexShrink: 0 }}>
             <div style={{ background: "#05200b", borderRadius: 12, padding: 16, marginBottom: 20, color: "#fff" }}>
               <div style={{ fontSize: 11, color: T.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 4 }}>
                 {activeTab === "visitas" ? "Visitas filtradas" : "Registros filtrados"}
@@ -2167,7 +2330,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
           {/* Tabs */}
           <div style={{ background: T.white, borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
             {/* Tab buttons */}
-            <div style={{ display: "flex", padding: "0 20px", overflowX: "auto" }}>
+            <div id="mc-tabs" style={{ display: "flex", padding: "0 20px", overflowX: "auto" }}>
               {[
                 ["movimientos", "📋 Movimientos", filtered.filter(r => !filterTipo || r.tipo === filterTipo).length],
                 ["visitas",     "🔄 Visitas",     visitas.filter(v => !filterStatus || v.status === filterStatus).length],
@@ -2784,6 +2947,7 @@ function ComercialProveedorsPanel({ empresas, onUpdateProveedors }) {
 
 // ─── Admin Panel ──────────────────────────────────────────────────────────────
 function AdminPanel({ user, sedes, empresas, admins, viewers, guardias, comercials, onUpdateSedes, onUpdateProveedors, onUpdateAdmins, onUpdateViewers, onUpdateGuardias, onUpdateComercials, onClose }) {
+  const { mobile } = useBreakpoint();
   const [tab, setTab] = useState("empresas");
   const [newEmp, setNewEmp] = useState("");
   const [newSede, setNewSede] = useState("");
