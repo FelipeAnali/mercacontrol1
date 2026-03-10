@@ -1362,31 +1362,31 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
 
   // ── Exportar cumplimiento ──────────────────────────────────────────────────
   const [showExportCumpl, setShowExportCumpl] = useState(false);
+  const [exportPeriodo,   setExportPeriodo]   = useState("semana"); // semana | dia | mes | año
 
-  const exportarCumplimiento = (tipo) => {
-    const esc = v => { const s = String(v??''); return (s.includes(',')||s.includes('"')) ? `"${s.replace(/"/g,'""')}"` : s; };
-    const estado = p => p===null?'Sin datos':p>=100?'✅ Al día':p>=70?'🟡 En progreso':p>=40?'🟠 En riesgo':'🔴 Crítico';
+  const exportarCumplimiento = (periodoExport) => {
+    const esc    = v => { const s = String(v??''); return (s.includes(',')||s.includes('"')) ? `"${s.replace(/"/g,'""')}"` : s; };
+    const estado = p => p===null?'Sin datos':p>=100?'Al dia':p>=70?'En progreso':p>=40?'En riesgo':'Critico';
     let headers=[], rows=[], nombre='';
 
-    if (modo==='semana' && semanaData) {
-      nombre = `Cumplimiento_Semana_${curLabel?.replace(/\s/g,'_')||'actual'}`;
-      if (tipo === 'resumen') {
+    // ── Datos para semana / dia: siempre usa semanaData (semana actual del weekOffset)
+    if ((periodoExport==='semana' || periodoExport==='dia') && semanaData) {
+      nombre = `Cumplimiento_Semana_${semanaData.label?.replace(/\s/g,'_')||'actual'}`;
+      if (periodoExport === 'semana') {
         headers = ['Proveedor','Sede','Horas acordadas (semana)','Horas acum. hasta hoy','Horas reales','Cumplimiento %','Estado'];
         rows = semanaData.filas.map(f => [
           f.emp?.nombre||'—', f.sede?.nombre||'—',
           fmt1(f.acordadoTotal), fmt1(f.acordado), fmt1(f.real),
           f.pct!==null?f.pct+'%':'—', estado(f.pct)
         ].map(esc).join(','));
-        // Totales
         rows.push(['','TOTAL GENERAL',
           fmt1(semanaData.filas.reduce((s,f)=>s+f.acordadoTotal,0)),
-          fmt1(semanaData.totalAcord),
-          fmt1(semanaData.totalReal),
+          fmt1(semanaData.totalAcord), fmt1(semanaData.totalReal),
           semanaData.pctGlobal+'%', estado(semanaData.pctGlobal)
         ].map(esc).join(','));
       } else {
         // Por día
-        headers = ['Proveedor','Sede','Día','Horas acordadas','Horas reales','Cumplimiento %','Estado'];
+        headers = ['Proveedor','Sede','Dia','Horas acordadas','Horas reales','Cumplimiento %','Estado'];
         semanaData.filas.forEach(f => {
           f.diasData.forEach(d => {
             rows.push([
@@ -1399,7 +1399,7 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
           });
         });
       }
-    } else if (modo==='mes' && mesData) {
+    } else if (periodoExport==='mes' && mesData) {
       nombre = `Cumplimiento_Mes_${mesData.label?.replace(/\s/g,'_')||'actual'}`;
       const semLabels = mesData.semanas.map((_,i)=>`Sem ${i+1}`);
       headers = ['Proveedor','Sede',...semLabels,'Total Mes %','Horas acordadas','Horas reales','Estado'];
@@ -1417,7 +1417,7 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
         mesData.pctGlobal+'%',
         fmt1(mesData.totalAcord), fmt1(mesData.totalReal), estado(mesData.pctGlobal)
       ].map(esc).join(','));
-    } else if (modo==='año' && anioData) {
+    } else if (periodoExport==='año' && anioData) {
       nombre = `Cumplimiento_Año_${anioData.yr}`;
       const mesLabels = anioData.meses.map(m=>m.label);
       headers = ['Proveedor','Sede',...mesLabels,'Total Año %','Horas acordadas','Horas reales','Estado'];
@@ -1434,7 +1434,7 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
     }
 
     if (!rows.length) return;
-    const csv = '\uFEFF' + [headers.map(esc).join(','), ...rows].join('\r\n');
+    const csv  = '\uFEFF' + [headers.map(esc).join(','), ...rows].join('\r\n');
     const blob = new Blob([csv], { type:'text/csv;charset=utf-8;' });
     const url  = URL.createObjectURL(blob);
     const a    = document.createElement('a');
@@ -1457,59 +1457,81 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
       {showExportCumpl && (
         <div style={{ position:"fixed",inset:0,background:"rgba(0,0,0,.6)",zIndex:500,display:"flex",alignItems:"center",justifyContent:"center",padding:20 }}
           onClick={e=>e.target===e.currentTarget&&setShowExportCumpl(false)}>
-          <div style={{ background:"#fff",borderRadius:20,width:"100%",maxWidth:420,boxShadow:"0 24px 64px rgba(0,0,0,.25)",overflow:"hidden" }}>
-            <div style={{ background:"#05200b",padding:"20px 24px",display:"flex",justifyContent:"space-between",alignItems:"center" }}>
+          <div style={{ background:"#fff",borderRadius:20,width:"100%",maxWidth:440,maxHeight:"90vh",overflowY:"auto",boxShadow:"0 24px 64px rgba(0,0,0,.25)",overflow:"hidden",display:"flex",flexDirection:"column" }}>
+
+            {/* Header */}
+            <div style={{ background:"#05200b",padding:"20px 24px",display:"flex",justifyContent:"space-between",alignItems:"center",flexShrink:0 }}>
               <div>
                 <div style={{ color:"#fff",fontSize:18,fontWeight:900 }}>📥 Exportar Cumplimiento</div>
-                <div style={{ color:"#7dd105",fontSize:12,marginTop:3 }}>{curLabel} · {(modo==="semana"?semanaData?.filas:modo==="mes"?mesData?.filas:anioData?.filas||[])?.length||0} acuerdos</div>
+                <div style={{ color:"#7dd105",fontSize:12,marginTop:3 }}>Elige el período que quieres descargar</div>
               </div>
               <button onClick={()=>setShowExportCumpl(false)} style={{ background:"rgba(255,255,255,.15)",border:"none",color:"#fff",width:32,height:32,borderRadius:8,cursor:"pointer",fontSize:18 }}>×</button>
             </div>
-            <div style={{ padding:24 }}>
+
+            <div style={{ padding:24,overflowY:"auto" }}>
               <p style={{ fontSize:13,color:T.slate,marginBottom:16,lineHeight:1.5 }}>
-                Descarga el reporte de cumplimiento como <strong>.csv</strong> — se abre directo en Excel con todas las columnas organizadas.
+                Selecciona el tipo de reporte. El archivo <strong>.csv</strong> se abre directo en Excel.
               </p>
-              <div style={{ display:"flex",flexDirection:"column",gap:10 }}>
-                {modo==="semana" && (<>
-                  <button onClick={()=>exportarCumplimiento('resumen')} style={{
-                    padding:"16px",borderRadius:12,border:`2px solid #16a34a`,background:"#f0fdf4",
-                    color:"#166534",cursor:"pointer",fontWeight:700,fontSize:14,
-                    display:"flex",alignItems:"center",gap:12,textAlign:"left"
-                  }}>
-                    <span style={{fontSize:28}}>📋</span>
-                    <div>
-                      <div style={{fontWeight:800}}>Resumen semanal</div>
-                      <div style={{fontSize:12,color:"#4ade80",marginTop:2}}>Proveedor · Sede · Acordado · Real · % por semana</div>
+
+              {/* ── Opciones ── */}
+              <div style={{ display:"flex",flexDirection:"column",gap:10,marginBottom:18 }}>
+                {[
+                  { k:"semana", icon:"📋", label:"Semana — Resumen", desc:"Una fila por proveedor+sede · Acordado · Real · % semanal", color:"#16a34a", border:"#16a34a", bg:"#f0fdf4", textColor:"#166534", descColor:"#4ade80" },
+                  { k:"dia",    icon:"📅", label:"Semana — Por día",  desc:"Una fila por cada proveedor + día · % diario",              color:"#2563eb", border:"#2563eb", bg:"#eff6ff", textColor:"#1d4ed8", descColor:"#60a5fa" },
+                  { k:"mes",    icon:"🗓️", label:"Mes — Por semanas", desc:"Columnas Sem 1, Sem 2… · % de cada semana · Total",        color:"#7c3aed", border:"#7c3aed", bg:"#ede9fe", textColor:"#5b21b6", descColor:"#a78bfa" },
+                  { k:"año",    icon:"📆", label:"Año — Por meses",   desc:"Columnas Ene, Feb, Mar… · % de cada mes · Total anual",    color:"#ea580c", border:"#ea580c", bg:"#fff7ed", textColor:"#9a3412", descColor:"#fb923c" },
+                ].map(op => {
+                  const sel = exportPeriodo === op.k;
+                  return (
+                    <div key={op.k} onClick={()=>setExportPeriodo(op.k)}
+                      style={{
+                        display:"flex",alignItems:"center",gap:14,padding:"14px 16px",borderRadius:12,
+                        border:`2px solid ${sel ? op.border : T.border}`,
+                        background: sel ? op.bg : T.white,
+                        cursor:"pointer",transition:"all .15s"
+                      }}>
+                      <div style={{ width:16,height:16,borderRadius:"50%",border:`2px solid ${sel?op.color:T.muted}`,display:"flex",alignItems:"center",justifyContent:"center",flexShrink:0 }}>
+                        {sel && <div style={{ width:8,height:8,borderRadius:"50%",background:op.color }} />}
+                      </div>
+                      <span style={{ fontSize:26,flexShrink:0 }}>{op.icon}</span>
+                      <div>
+                        <div style={{ fontWeight:800,fontSize:14,color:sel?op.textColor:T.navy }}>{op.label}</div>
+                        <div style={{ fontSize:11,color:sel?op.textColor:T.muted,marginTop:2,opacity:sel?0.8:1 }}>{op.desc}</div>
+                      </div>
                     </div>
-                  </button>
-                  <button onClick={()=>exportarCumplimiento('dia')} style={{
-                    padding:"16px",borderRadius:12,border:`2px solid #2563eb`,background:"#eff6ff",
-                    color:"#1d4ed8",cursor:"pointer",fontWeight:700,fontSize:14,
-                    display:"flex",alignItems:"center",gap:12,textAlign:"left"
-                  }}>
-                    <span style={{fontSize:28}}>📅</span>
-                    <div>
-                      <div style={{fontWeight:800}}>Desglose por día</div>
-                      <div style={{fontSize:12,color:"#60a5fa",marginTop:2}}>Una fila por cada proveedor + día de la semana</div>
-                    </div>
-                  </button>
-                </>)}
-                {(modo==="mes"||modo==="año") && (
-                  <button onClick={()=>exportarCumplimiento('heatmap')} style={{
-                    padding:"16px",borderRadius:12,border:`2px solid #7c3aed`,background:"#ede9fe",
-                    color:"#5b21b6",cursor:"pointer",fontWeight:700,fontSize:14,
-                    display:"flex",alignItems:"center",gap:12,textAlign:"left"
-                  }}>
-                    <span style={{fontSize:28}}>🗓️</span>
-                    <div>
-                      <div style={{fontWeight:800}}>Heatmap {modo==="mes"?"por semanas":"por meses"}</div>
-                      <div style={{fontSize:12,color:"#a78bfa",marginTop:2}}>Proveedor · Sede · % por {modo==="mes"?"semana":"mes"} · Total</div>
-                    </div>
-                  </button>
-                )}
+                  );
+                })}
               </div>
-              <div style={{ marginTop:14,padding:"10px 12px",background:T.bg,borderRadius:8,fontSize:12,color:T.slate }}>
-                💡 El archivo incluye una fila de <strong>TOTAL GENERAL</strong> al final para resumen ejecutivo.
+
+              {/* Info del período seleccionado */}
+              <div style={{ padding:"10px 14px",background:T.bg,borderRadius:10,marginBottom:18,fontSize:12,color:T.slate,lineHeight:1.6 }}>
+                {exportPeriodo==="semana" && <>📋 <strong>Período:</strong> {semanaData?.label||"Semana actual"} · {semanaData?.filas?.length||0} acuerdos · Cumplimiento global: <strong style={{color:pctColor(semanaData?.pctGlobal)}}>{semanaData?.pctGlobal||0}%</strong></>}
+                {exportPeriodo==="dia"    && <>📅 <strong>Período:</strong> {semanaData?.label||"Semana actual"} · Desglose de {(semanaData?.filas?.length||0)*(7)} filas de días</>}
+                {exportPeriodo==="mes"    && <>🗓️ <strong>Período:</strong> {mesData?.label||"Mes actual"} · {mesData?.filas?.length||0} acuerdos · Cumplimiento global: <strong style={{color:pctColor(mesData?.pctGlobal)}}>{mesData?.pctGlobal||0}%</strong></>}
+                {exportPeriodo==="año"    && <>📆 <strong>Período:</strong> {anioData?.yr||new Date().getFullYear()} · {anioData?.filas?.length||0} acuerdos · Cumplimiento global: <strong style={{color:pctColor(anioData?.pctGlobal)}}>{anioData?.pctGlobal||0}%</strong></>}
+              </div>
+
+              <button onClick={()=>exportarCumplimiento(exportPeriodo)}
+                disabled={
+                  (exportPeriodo==="semana"||exportPeriodo==="dia") && !semanaData?.filas?.length ||
+                  exportPeriodo==="mes"  && !mesData?.filas?.length  ||
+                  exportPeriodo==="año"  && !anioData?.filas?.length
+                }
+                style={{
+                  width:"100%",padding:"14px",borderRadius:12,border:"none",fontSize:15,fontWeight:800,cursor:"pointer",
+                  background: exportPeriodo==="semana"?"#16a34a":exportPeriodo==="dia"?"#2563eb":exportPeriodo==="mes"?"#7c3aed":"#ea580c",
+                  color:"#fff",display:"flex",alignItems:"center",justifyContent:"center",gap:10,
+                  opacity: (
+                    (exportPeriodo==="semana"||exportPeriodo==="dia") && !semanaData?.filas?.length ||
+                    exportPeriodo==="mes" && !mesData?.filas?.length  ||
+                    exportPeriodo==="año" && !anioData?.filas?.length
+                  ) ? 0.5 : 1
+                }}>
+                <span>📥</span> Descargar Excel
+              </button>
+
+              <div style={{ marginTop:12,textAlign:"center",fontSize:11,color:T.muted }}>
+                Incluye fila de <strong>TOTAL GENERAL</strong> al final · Compatible con Excel y Google Sheets
               </div>
             </div>
           </div>
