@@ -82,14 +82,16 @@
   ═══════════════════════════════════════════════════════════ -->
   <style>
     /* ── Base touch improvements ── */
+    * { box-sizing: border-box; }
     button, select, input { touch-action: manipulation; -webkit-tap-highlight-color: transparent; }
     input, select { font-size: 16px !important; } /* evita zoom en iOS */
 
+    /* ── Smooth scrolling ── */
+    html { scroll-behavior: smooth; -webkit-overflow-scrolling: touch; }
+
     /* ── Formulario Nuevo Registro: 2 cols solo en landscape móvil/tablet ── */
     @media (max-height: 600px) and (orientation: landscape) {
-      #mc-reg-grid {
-        grid-template-columns: 1fr 1fr !important;
-      }
+      #mc-reg-grid { grid-template-columns: 1fr 1fr !important; }
     }
 
     /* ════════════════════════════════
@@ -97,8 +99,8 @@
     ════════════════════════════════ */
     @media (max-width: 639px) {
 
-      /* ── Top bar: ocultar labels de botones, solo iconos ── */
-      #mc-topbar-title { display: none !important; }
+      /* ── Top bar compacto ── */
+      #mc-topbar-title  { display: none !important; }
       #mc-viewas        { display: none !important; }
       .mc-btn-label     { display: none !important; }
       .mc-btn-icon      { display: inline !important; }
@@ -106,9 +108,14 @@
       #mc-topbar-actions { gap: 4px !important; }
       #mc-topbar-actions button { padding: 8px 10px !important; min-width: 36px; font-size: 16px !important; }
 
-      /* ── Tabs: compactos ── */
-      #mc-tabs { padding: 0 6px !important; }
-      #mc-tabs button { padding: 10px 10px !important; font-size: 12px !important; white-space: nowrap; }
+      /* ── Tabs: OCULTOS en móvil (reemplazados por bottom nav) ── */
+      #mc-tabs-wrapper { display: none !important; }
+
+      /* ── Bottom nav visible solo en móvil ── */
+      #mc-bottom-nav { display: flex !important; }
+
+      /* ── Contenido principal: espacio para bottom nav ── */
+      #mc-main-content { padding-bottom: 68px !important; }
 
       /* ── Sidebar: drawer desde la izquierda ── */
       [data-sidebar="true"] {
@@ -117,26 +124,32 @@
         left: 0 !important;
         bottom: 0 !important;
         width: min(85vw, 320px) !important;
-        z-index: 200 !important;
+        z-index: 300 !important;
         box-shadow: 4px 0 24px rgba(0,0,0,.4) !important;
         overflow-y: auto !important;
+        padding-bottom: 80px !important;
       }
+
+      /* ── Sidebar overlay ── */
+      #mc-sidebar-overlay { display: block !important; }
+
+      /* ── ViewAs menu mobile ── */
+      #mc-viewas-btn { display: flex !important; }
 
       /* ── Listas de movimientos: compactar ── */
       [data-reg-row="true"] { padding: 10px 12px !important; }
-      [data-reg-row="true"] .reg-number { display: none; }
 
       /* ── Formulario nuevo registro: full width ── */
       [data-form="true"] { padding: 14px !important; }
 
-      /* ── Cumplimiento: tabla con scroll horizontal ── */
-      [data-cumpl-table="true"] { overflow-x: auto !important; }
+      /* ── Cumplimiento: scroll horizontal ── */
+      [data-cumpl-table="true"] { overflow-x: auto !important; -webkit-overflow-scrolling: touch !important; }
 
-      /* ── Security view: ajustes ── */
+      /* ── Security view ── */
       [data-sec-header="true"] { padding: 14px 14px !important; }
-      [data-sec-sede="true"] { font-size: 17px !important; }
-      [data-sec-time="true"] { font-size: 26px !important; }
-      [data-sec-btn="true"] { padding: 14px !important; font-size: 17px !important; }
+      [data-sec-sede="true"]   { font-size: 17px !important; }
+      [data-sec-time="true"]   { font-size: 26px !important; }
+      [data-sec-btn="true"]    { padding: 14px !important; font-size: 17px !important; }
 
       /* ── AdminPanel: full screen ── */
       [data-panel="true"] { border-radius: 0 !important; min-height: 100vh !important; }
@@ -151,16 +164,20 @@
         max-height: 90vh !important;
         overflow-y: auto !important;
         margin: 0 !important;
-      }
-
-      /* ── Acuerdos form: stack columnas ── */
-      [data-acuerdo-grid="true"] {
-        grid-template-columns: repeat(4, 1fr) !important;
+        max-width: 100% !important;
       }
 
       /* ── Grids de KPI: 2 columnas en móvil ── */
-      [data-kpi-grid="true"] {
-        grid-template-columns: repeat(2, 1fr) !important;
+      [data-kpi-grid="true"] { grid-template-columns: repeat(2, 1fr) !important; }
+
+      /* ── ViewAs bottom sheet ── */
+      #mc-viewas-sheet {
+        position: fixed !important;
+        bottom: 0 !important;
+        left: 0 !important;
+        right: 0 !important;
+        z-index: 500 !important;
+        border-radius: 20px 20px 0 0 !important;
       }
     }
 
@@ -169,17 +186,18 @@
     ════════════════════════════════ */
     @media (min-width: 640px) and (max-width: 1023px) {
 
-      /* ViewAs se oculta en tablet para ahorrar espacio */
-      #mc-viewas { display: none !important; }
-      .mc-btn-label { display: none !important; }
-      .mc-btn-icon  { display: inline !important; }
+      /* ViewAs en tablet → botón compacto visible */
+      #mc-viewas        { display: none !important; }
+      #mc-viewas-btn    { display: flex !important; }
+      .mc-btn-label     { display: none !important; }
+      .mc-btn-icon      { display: inline !important; }
       #mc-topbar-actions button { padding: 7px 10px !important; }
 
-      /* Sidebar más angosto */
+      /* Sidebar más angosto en tablet */
       [data-sidebar="true"] { width: 200px !important; }
 
       /* Tabs más compactos */
-      #mc-tabs button { padding: 11px 14px !important; font-size: 13px !important; }
+      #mc-tabs button { padding: 11px 12px !important; font-size: 12px !important; }
     }
 
     /* ════════════════════════════════
@@ -191,27 +209,74 @@
       [data-sec-time="true"]   { font-size: 20px !important; }
       [data-sec-btn="true"]    { padding: 10px !important; font-size: 15px !important; margin-bottom: 10px !important; }
       #mc-topbar               { padding: 6px 12px !important; }
+      #mc-bottom-nav           { display: none !important; }
+      #mc-tabs-wrapper         { display: block !important; }
+      #mc-main-content         { padding-bottom: 0 !important; }
     }
 
-    /* ── Siempre mostrar .mc-btn-icon en desktop ── */
-
-    /* ════════════════════════════════
-       LANDSCAPE MÓVIL — Admin Panel fix
-       Reduce header altura para que quede espacio al contenido
-    ════════════════════════════════ */
     @media (max-height: 499px) {
-      /* Header sticky más compacto */
       [data-panel-header="true"] { padding: 6px 12px !important; }
-      /* Tabs más compactos */
       [data-panel-tabs="true"] button { padding: 6px 8px !important; font-size: 11px !important; }
-      /* Las listas internas usan menos vh */
       [data-panel-list="true"] { max-height: 35vh !important; }
-      /* Ocultar descripción larga en landscape */
       [data-panel-desc="true"] { display: none !important; }
     }
+
+    /* ── Desktop: iconos ocultos, labels visibles ── */
     @media (min-width: 1024px) {
-      .mc-btn-icon { display: none !important; }
+      .mc-btn-icon  { display: none !important; }
       .mc-btn-label { display: inline !important; }
+    }
+
+    /* ── Bottom nav: oculto por defecto, solo visible en móvil via media query ── */
+    #mc-bottom-nav { display: none; }
+    #mc-sidebar-overlay { display: none; }
+    #mc-viewas-btn { display: none; }
+
+    /* ── Bottom nav styles ── */
+    #mc-bottom-nav {
+      position: fixed;
+      bottom: 0; left: 0; right: 0;
+      height: 60px;
+      background: #05200b;
+      border-top: 1px solid rgba(255,255,255,.08);
+      z-index: 200;
+      align-items: stretch;
+      justify-content: stretch;
+      box-shadow: 0 -4px 20px rgba(0,0,0,.3);
+    }
+    .mc-bnav-btn {
+      flex: 1;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 3px;
+      background: none;
+      border: none;
+      cursor: pointer;
+      padding: 6px 4px;
+      transition: background .15s;
+      -webkit-tap-highlight-color: transparent;
+    }
+    .mc-bnav-btn.active { background: rgba(125,209,5,.15); }
+    .mc-bnav-icon { font-size: 18px; line-height: 1; }
+    .mc-bnav-label { font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .5px; }
+
+    /* ── Sidebar overlay ── */
+    #mc-sidebar-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.5);
+      z-index: 299;
+      backdrop-filter: blur(2px);
+    }
+
+    /* ── ViewAs sheet overlay ── */
+    #mc-viewas-overlay {
+      position: fixed;
+      inset: 0;
+      background: rgba(0,0,0,.5);
+      z-index: 499;
     }
   </style>
 </head>
@@ -1211,7 +1276,7 @@ function fmtWeekLabel(mon, sun) {
   return `${mon.toLocaleDateString("es-CO", opts)} – ${sun.toLocaleDateString("es-CO", opts)}`;
 }
 
-function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
+function CumplimientoView({ acuerdos, visitas, empresas, sedes, isComercial = false }) {
   const [modo,       setModo]       = useState("semana");
   const [weekOffset, setWeekOffset] = useState(0);
   const [mesOffset,  setMesOffset]  = useState(0);
@@ -1371,6 +1436,17 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
   const toggleExportProv = id => setExportProvs(p => p.includes(id) ? p.filter(x=>x!==id) : [...p, id]);
   const proveedoresDisp  = useMemo(() => [...new Set(acuerdos.map(a=>a.proveedorId))]
     .map(id => empresas.find(e=>e.id===id)).filter(Boolean), [acuerdos, empresas]);
+
+  // ── Alertas de bajo cumplimiento ──────────────────────────────────────────
+  const [showAlertas, setShowAlertas] = useState(true);
+  const alertas = useMemo(() => {
+    const filas = modo === "semana" ? semanaData?.filas : modo === "mes" ? mesData?.filas : anioData?.filas;
+    if (!filas) return [];
+    return filas
+      .filter(f => f.pct !== null && f.pct < 70)
+      .map(f => ({ ...f, nivel: f.pct < 40 ? "critico" : "riesgo" }))
+      .sort((a,b) => (a.pct??0) - (b.pct??0));
+  }, [modo, semanaData, mesData, anioData]);
 
   const exportarCumplimiento = () => {
     const XLSX = window.XLSX;
@@ -1626,6 +1702,86 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
         ))}
       </div>
 
+      {/* ── Panel Comercial — solo cuando isComercial ── */}
+      {isComercial && (() => {
+        const filas = modo==="semana"?semanaData?.filas:modo==="mes"?mesData?.filas:anioData?.filas;
+        if (!filas || filas.length===0) return null;
+        const total = filas.length;
+        const criticos = filas.filter(f=>(f.pct??f.pctTotal??null)!==null&&(f.pct??f.pctTotal)<40).length;
+        const enRiesgo = filas.filter(f=>{const p=f.pct??f.pctTotal??null;return p!==null&&p>=40&&p<70;}).length;
+        const alDia    = filas.filter(f=>(f.pct??f.pctTotal??null)!==null&&(f.pct??f.pctTotal)>=70).length;
+        return (
+          <div style={{ background:"linear-gradient(135deg,#0c2461,#1a3a8f)", borderRadius:14, padding:"16px 20px", marginBottom:16, display:"flex", flexWrap:"wrap", gap:12, alignItems:"center" }}>
+            <div style={{ flex:1, minWidth:200 }}>
+              <div style={{ fontSize:11, color:"rgba(255,255,255,.6)", fontWeight:700, textTransform:"uppercase", letterSpacing:1, marginBottom:4 }}>🏭 Panel Comercial</div>
+              <div style={{ fontSize:13, color:"rgba(255,255,255,.85)" }}>Seguimiento de {total} acuerdo{total!==1?"s":""} activo{total!==1?"s":""}</div>
+            </div>
+            {[
+              {label:"🔴 Críticos",count:criticos,bg:"rgba(239,68,68,.25)",col:"#fca5a5"},
+              {label:"🟠 En riesgo",count:enRiesgo,bg:"rgba(245,158,11,.25)",col:"#fde68a"},
+              {label:"✅ Al día",count:alDia,bg:"rgba(34,197,94,.2)",col:"#86efac"},
+            ].map(s=>(
+              <div key={s.label} style={{ textAlign:"center", background:s.bg, borderRadius:10, padding:"10px 18px" }}>
+                <div style={{ fontSize:22, fontWeight:900, color:s.col }}>{s.count}</div>
+                <div style={{ fontSize:11, color:"rgba(255,255,255,.7)", marginTop:2 }}>{s.label}</div>
+              </div>
+            ))}
+          </div>
+        );
+      })()}
+
+      {/* ── Alertas de bajo cumplimiento ── */}
+      {alertas.length > 0 && (
+        <div style={{ marginBottom:16 }}>
+          <button onClick={()=>setShowAlertas(s=>!s)} style={{
+            width:"100%", display:"flex", alignItems:"center", justifyContent:"space-between",
+            background: alertas.some(a=>a.nivel==="critico") ? "#fef2f2" : "#fff7ed",
+            border:`1.5px solid ${alertas.some(a=>a.nivel==="critico")?"#fca5a5":"#fed7aa"}`,
+            borderRadius:showAlertas?`10px 10px 0 0`:"10px",
+            padding:"10px 14px", cursor:"pointer"
+          }}>
+            <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+              <span style={{ fontSize:16 }}>{alertas.some(a=>a.nivel==="critico")?"🔴":"🟠"}</span>
+              <span style={{ fontSize:13, fontWeight:800, color: alertas.some(a=>a.nivel==="critico")?"#b91c1c":"#b45309" }}>
+                {alertas.filter(a=>a.nivel==="critico").length > 0 && `${alertas.filter(a=>a.nivel==="critico").length} crítico${alertas.filter(a=>a.nivel==="critico").length!==1?"s":""}`}
+                {alertas.filter(a=>a.nivel==="critico").length > 0 && alertas.filter(a=>a.nivel==="riesgo").length > 0 && " · "}
+                {alertas.filter(a=>a.nivel==="riesgo").length > 0 && `${alertas.filter(a=>a.nivel==="riesgo").length} en riesgo`}
+                {" — "}{alertas.length} proveedor{alertas.length!==1?"es":""} bajo el 70%
+              </span>
+            </div>
+            <span style={{ fontSize:12, color:T.muted, fontWeight:700 }}>{showAlertas?"▲ Ocultar":"▼ Ver alertas"}</span>
+          </button>
+          {showAlertas && (
+            <div style={{ background:T.white, border:`1.5px solid ${alertas.some(a=>a.nivel==="critico")?"#fca5a5":"#fed7aa"}`, borderTop:"none", borderRadius:"0 0 10px 10px", overflow:"hidden" }}>
+              {alertas.map((f,i)=>{
+                const pct = f.pct??f.pctTotal??0;
+                const isCrit = pct<40;
+                return (
+                  <div key={f.key||i} style={{
+                    display:"flex", alignItems:"center", gap:10, padding:"10px 14px",
+                    borderBottom:i<alertas.length-1?`1px solid ${T.border}`:"none",
+                    background: isCrit?"#fff5f5":"#fffbf0"
+                  }}>
+                    <span style={{ fontSize:18, flexShrink:0 }}>{isCrit?"🔴":"🟠"}</span>
+                    <div style={{ flex:1, minWidth:0 }}>
+                      <div style={{ fontSize:13, fontWeight:800, color:T.navy, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{f.emp?.nombre||"—"}</div>
+                      <div style={{ fontSize:11, color:T.muted }}>📍 {f.sede?.nombre||"—"}</div>
+                    </div>
+                    <div style={{ textAlign:"right", flexShrink:0 }}>
+                      <div style={{ fontSize:16, fontWeight:900, color:isCrit?"#dc2626":"#d97706" }}>{pct}%</div>
+                      <div style={{ fontSize:10, color:T.muted }}>{isCrit?"Crítico":"En riesgo"}</div>
+                    </div>
+                    <div style={{ width:60, height:6, borderRadius:99, background:T.border, position:"relative", overflow:"hidden", flexShrink:0 }}>
+                      <div style={{ position:"absolute", left:0, top:0, bottom:0, borderRadius:99, width:`${pct}%`, background:isCrit?"#dc2626":"#d97706" }}/>
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      )}
+
       {/* ── VISTA SEMANA ── */}
       {modo === "semana" && semanaData && (
         semanaData.filas.length === 0
@@ -1650,7 +1806,8 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
 
               {/* ── Sub-vista RESUMEN ── */}
               {subModo === "resumen" && (
-                <div style={{ background:T.white, borderRadius:14, border:`1px solid ${T.border}`, overflow:"hidden" }}>
+                <div data-cumpl-table="true" style={{ overflowX:"auto" }}>
+                <div style={{ background:T.white, borderRadius:14, border:`1px solid ${T.border}`, overflow:"hidden", minWidth:540 }}>
                   <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 90px 90px 80px 1fr 70px", gap:6, padding:"10px 16px", background:T.bg, borderBottom:`1px solid ${T.border}`, fontSize:10, fontWeight:700, color:T.muted, textTransform:"uppercase" }}>
                     <div>Proveedor</div>
                     <div>Sede</div>
@@ -1679,6 +1836,7 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
                       <div style={{textAlign:"center"}}><PctCell pct={f.pct}/></div>
                     </div>
                   ))}
+                </div>
                 </div>
               )}
 
@@ -1747,7 +1905,7 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
       {modo === "mes" && mesData && (
         mesData.filas.length === 0
           ? <EmptyState />
-          : <div style={{ overflowX:"auto" }}>
+          : <div data-cumpl-table="true" style={{ overflowX:"auto" }}>
               <div style={{ minWidth:600, background:T.white, borderRadius:14, border:`1px solid ${T.border}`, overflow:"hidden" }}>
                 {/* Cabecera */}
                 <div style={{ display:"grid", gridTemplateColumns:`180px 120px repeat(${mesData.semanas.length},1fr) 70px`, padding:"10px 16px", background:T.navy, fontSize:11, fontWeight:700, color:"rgba(255,255,255,.7)", textTransform:"uppercase", gap:6 }}>
@@ -1776,7 +1934,7 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
       {modo === "año" && anioData && (
         anioData.filas.length === 0
           ? <EmptyState />
-          : <div style={{ overflowX:"auto" }}>
+          : <div data-cumpl-table="true" style={{ overflowX:"auto" }}>
               {/* Fila global compañía */}
               <div style={{ background:T.navy, borderRadius:12, padding:"12px 16px", marginBottom:12, display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
                 <span style={{color:"#fff",fontWeight:800,fontSize:13,minWidth:120}}>🏢 Compañía global</span>
@@ -1817,6 +1975,25 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes }) {
 
       <div style={{ marginTop:12, fontSize:11, color:T.muted, textAlign:"center" }}>
         Solo visitas con entrada Y salida registradas cuentan como horas reales · Horas acordadas calculadas hasta hoy si el período es actual
+      </div>
+    </div>
+  );
+}
+
+function PaginationBar({ page, total, pageSize, onPage }) {
+  const totalPages = Math.ceil(total / pageSize);
+  if (totalPages <= 1) return null;
+  const from = (page-1)*pageSize + 1;
+  const to   = Math.min(page*pageSize, total);
+  return (
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", padding:"14px 0", borderTop:`1px solid ${T.border}`, marginTop:8 }}>
+      <span style={{ fontSize:12, color:T.muted }}>{from}–{to} de {total} resultados</span>
+      <div style={{ display:"flex", gap:6, alignItems:"center" }}>
+        <button onClick={()=>onPage(1)} disabled={page===1} style={{ padding:"5px 9px", borderRadius:8, border:`1px solid ${T.border}`, background:T.white, cursor:page===1?"not-allowed":"pointer", color:page===1?T.muted:T.slate, fontSize:11, fontWeight:600 }}>«</button>
+        <button onClick={()=>onPage(page-1)} disabled={page===1} style={{ padding:"5px 12px", borderRadius:8, border:`1px solid ${T.border}`, background:T.white, cursor:page===1?"not-allowed":"pointer", color:page===1?T.muted:T.slate, fontSize:12, fontWeight:600 }}>← Ant.</button>
+        <span style={{ padding:"5px 14px", background:T.navy, borderRadius:8, fontSize:12, fontWeight:800, color:"#fff" }}>{page} / {totalPages}</span>
+        <button onClick={()=>onPage(page+1)} disabled={page===totalPages} style={{ padding:"5px 12px", borderRadius:8, border:`1px solid ${T.border}`, background:T.white, cursor:page===totalPages?"not-allowed":"pointer", color:page===totalPages?T.muted:T.slate, fontSize:12, fontWeight:600 }}>Sig. →</button>
+        <button onClick={()=>onPage(totalPages)} disabled={page===totalPages} style={{ padding:"5px 9px", borderRadius:8, border:`1px solid ${T.border}`, background:T.white, cursor:page===totalPages?"not-allowed":"pointer", color:page===totalPages?T.muted:T.slate, fontSize:11, fontWeight:600 }}>»</button>
       </div>
     </div>
   );
@@ -2292,12 +2469,19 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
   const [showAcuerdosExport, setShowAcuerdosExport] = useState(false);
   const [showComercialPanel, setShowComercialPanel] = useState(false);
   const [exporting, setExporting] = useState(false);
-  const [activeTab, setActiveTab] = useState("movimientos");
+  const [activeTab, setActiveTab] = useState(isComercial ? "cumplimiento" : "movimientos");
   const [detailVisita, setDetailVisita] = useState(null);
   const [filterTipo, setFilterTipo] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
+  const [filterSearch, setFilterSearch] = useState("");
 
-  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [pageMovs,    setPageMovs]    = useState(1);
+  const [pageVisitas, setPageVisitas] = useState(1);
+  const PAGE_SIZE = 50;
+
+  const [sidebarOpen, setSidebarOpen] = useState(false); // cerrado por defecto en móvil
+  const [showViewAsSheet, setShowViewAsSheet] = useState(false);
+  const bp = useBreakpoint();
 
   const sedesEnUso = sedes.filter(s => s.activa && registros.some(r => r.sedeId === s.id));
   const empresasEnUso = empresas.filter(e => e.activa && registros.some(r => r.proveedorId === e.id));
@@ -2310,23 +2494,45 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
     const toTs = filterDateTo
       ? (() => { const [y,m,d] = filterDateTo.split("-"); return new Date(+y, +m-1, +d, 23,59,59,999).getTime(); })()
       : null;
+    const q = filterSearch.toLowerCase().trim();
     return registros
       .filter(r => !filterSede    || r.sedeId    === filterSede)
       .filter(r => !filterProveedor || r.proveedorId === filterProveedor)
       .filter(r => !fromTs || r.timestamp >= fromTs)
       .filter(r => !toTs   || r.timestamp <= toTs)
+      .filter(r => !q || (r.proveedor||"").toLowerCase().includes(q) || (r.sedeName||"").toLowerCase().includes(q) || (r.guardiaName||"").toLowerCase().includes(q))
       .sort((a, b) => b.timestamp - a.timestamp);
-  }, [registros, filterSede, filterProveedor, filterDateFrom, filterDateTo]);
+  }, [registros, filterSede, filterProveedor, filterDateFrom, filterDateTo, filterSearch]);
 
-  const byDate = useMemo(() =>
-    filtered
-      .filter(r => !filterTipo || r.tipo === filterTipo)
-      .reduce((acc, r) => {
-        const d = new Date(r.timestamp).toDateString();
-        (acc[d] = acc[d] || []).push(r);
-        return acc;
-      }, {}),
+  const filteredMovs = useMemo(() =>
+    filtered.filter(r => !filterTipo || r.tipo === filterTipo),
     [filtered, filterTipo]);
+
+  const filteredVisitasList = useMemo(() =>
+    visitas.filter(v => !filterStatus || v.status === filterStatus),
+    [visitas, filterStatus]);
+
+  // Reset pages whenever filters change
+  useEffect(() => { setPageMovs(1); }, [filterSede, filterProveedor, filterDateFrom, filterDateTo, filterTipo, filterSearch]);
+  useEffect(() => { setPageVisitas(1); }, [filterSede, filterProveedor, filterDateFrom, filterDateTo, filterStatus, filterSearch]);
+
+  const byDate = useMemo(() => {
+    const paged = filteredMovs.slice((pageMovs-1)*PAGE_SIZE, pageMovs*PAGE_SIZE);
+    return paged.reduce((acc, r) => {
+      const d = new Date(r.timestamp).toDateString();
+      (acc[d] = acc[d] || []).push(r);
+      return acc;
+    }, {});
+  }, [filteredMovs, pageMovs, PAGE_SIZE]);
+
+  const byDateVisitas = useMemo(() => {
+    const paged = filteredVisitasList.slice((pageVisitas-1)*PAGE_SIZE, pageVisitas*PAGE_SIZE);
+    return paged.reduce((acc, v) => {
+      const d = new Date(v.fecha).toDateString();
+      (acc[d] = acc[d] || []).push(v);
+      return acc;
+    }, {});
+  }, [filteredVisitasList, pageVisitas, PAGE_SIZE]);
 
   // ── Algoritmo de visitas ──────────────────────────────────────────────────
   // Agrupa por sede + proveedor + día y empareja entradas con salidas
@@ -2404,24 +2610,19 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
   };
 
   const exportarExcel = useCallback(async (modo = "todos") => {
+    const XLSX = window.XLSX;
+    if (!XLSX) { alert("SheetJS no cargó, intenta recargar la página."); return; }
     setExporting(true);
     try {
-      const escape = v => {
-        const s = String(v ?? "");
-        return s.includes(",") || s.includes('"') || s.includes("\n")
-          ? `"${s.replace(/"/g, '""')}"` : s;
-      };
-
-      let headers, rows, filename;
       const fecha = new Date().toISOString().slice(0,10);
       const rangoStr = (filterDateFrom || filterDateTo)
         ? `_${filterDateFrom || "inicio"}_a_${filterDateTo || "hoy"}`
         : `_${fecha}`;
+      const wb = XLSX.utils.book_new();
 
       if (modo === "visitas") {
-        // Exportar visitas consolidadas
-        headers = ["Proveedor","Sede","Fecha","Hora Entrada","Hora Salida","Duración","Estado","Guardia Entrada","Guardia Salida"];
-        rows = visitas.map(v => [
+        const headers = ["Proveedor","Sede","Fecha","Hora Entrada","Hora Salida","Duración","Estado","Guardia Entrada","Guardia Salida"];
+        const rows = visitas.map(v => [
           v.proveedor, v.sedeName,
           fmtDate(v.fecha),
           v.entrada ? fmtTime(v.entrada.timestamp) : "",
@@ -2430,36 +2631,60 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
           v.status === "completo" ? "COMPLETA" : v.status === "adentro" ? "ADENTRO" : "SIN ENTRADA",
           v.entrada?.guardiaName || "",
           v.salida?.guardiaName  || "",
-        ].map(escape).join(","));
-        filename = `Canaveral_Visitas${rangoStr}.csv`;
-      } else {
-        const datos = modo === "filtrado"
-          ? filtered
-          : registros.slice().sort((a, b) => b.timestamp - a.timestamp);
-        headers = ["N° Registro","Fecha","Hora","Tipo","Proveedor","Sede","Registrado por","GPS Latitud","GPS Longitud","ID Registro"];
-        rows = datos.map(r => [
+        ]);
+        const ws = XLSX.utils.aoa_to_sheet([headers, ...rows]);
+        ws["!cols"] = [22,20,12,12,12,10,12,20,20].map(w=>({wch:w}));
+        XLSX.utils.book_append_sheet(wb, ws, "Visitas");
+        XLSX.writeFile(wb, `Canaveral_Visitas${rangoStr}.xlsx`);
+      } else if (modo === "ambos") {
+        // Hoja 1: Movimientos filtrados
+        const hMov = ["N° Registro","Fecha","Hora","Tipo","Proveedor","Sede","Registrado por","GPS Lat","GPS Lng"];
+        const rMov = filtered.map(r => [
           String(r.consecutivo).padStart(4,"0"),
           fmtDate(r.timestamp), fmtTime(r.timestamp),
           r.tipo === "entrada" ? "ENTRADA" : "SALIDA",
           r.proveedor, r.sedeName, r.guardiaName,
-          r.gps?.lat || "", r.gps?.lng || "", r.id,
-        ].map(escape).join(","));
-        filename = modo === "filtrado"
-          ? `Canaveral_Filtrado${rangoStr}.csv`
-          : `Canaveral_Todos${rangoStr}.csv`;
+          r.gps?.lat||"", r.gps?.lng||"",
+        ]);
+        const wsMov = XLSX.utils.aoa_to_sheet([hMov,...rMov]);
+        wsMov["!cols"] = [10,12,10,10,25,20,20,12,12].map(w=>({wch:w}));
+        XLSX.utils.book_append_sheet(wb, wsMov, "Movimientos");
+        // Hoja 2: Visitas
+        const hVis = ["Proveedor","Sede","Fecha","Hora Entrada","Hora Salida","Duración","Estado","Guardia Entrada","Guardia Salida"];
+        const rVis = visitas.map(v => [
+          v.proveedor, v.sedeName, fmtDate(v.fecha),
+          v.entrada?fmtTime(v.entrada.timestamp):"", v.salida?fmtTime(v.salida.timestamp):"",
+          v.duracionMin!==null?fmtDuracion(v.duracionMin):"",
+          v.status==="completo"?"COMPLETA":v.status==="adentro"?"ADENTRO":"SIN ENTRADA",
+          v.entrada?.guardiaName||"", v.salida?.guardiaName||"",
+        ]);
+        const wsVis = XLSX.utils.aoa_to_sheet([hVis,...rVis]);
+        wsVis["!cols"] = [22,20,12,12,12,10,12,20,20].map(w=>({wch:w}));
+        XLSX.utils.book_append_sheet(wb, wsVis, "Visitas");
+        XLSX.writeFile(wb, `Canaveral_Completo${rangoStr}.xlsx`);
+      } else {
+        const datos = modo === "filtrado"
+          ? filtered
+          : registros.slice().sort((a,b) => b.timestamp - a.timestamp);
+        const headers = ["N° Registro","Fecha","Hora","Tipo","Proveedor","Sede","Registrado por","GPS Lat","GPS Lng","ID"];
+        const rows = datos.map(r => [
+          String(r.consecutivo).padStart(4,"0"),
+          fmtDate(r.timestamp), fmtTime(r.timestamp),
+          r.tipo==="entrada"?"ENTRADA":"SALIDA",
+          r.proveedor, r.sedeName, r.guardiaName,
+          r.gps?.lat||"", r.gps?.lng||"", r.id,
+        ]);
+        const ws = XLSX.utils.aoa_to_sheet([headers,...rows]);
+        ws["!cols"] = [10,12,10,10,25,20,20,12,12,20].map(w=>({wch:w}));
+        XLSX.utils.book_append_sheet(wb, ws, modo==="filtrado"?"Filtrado":"Todos");
+        XLSX.writeFile(wb, modo==="filtrado"
+          ? `Canaveral_Filtrado${rangoStr}.xlsx`
+          : `Canaveral_Todos${rangoStr}.xlsx`);
       }
-
-      const csv = "\uFEFF" + [headers.join(","), ...rows].join("\r\n");
-      const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement("a");
-      a.href = url; a.download = filename;
-      document.body.appendChild(a); a.click();
-      document.body.removeChild(a); URL.revokeObjectURL(url);
     } catch(e) { alert("Error al exportar: " + e.message); }
     setExporting(false);
     setShowExportModal(false);
-  }, [filtered, registros, visitas, fmtDuracion]);
+  }, [filtered, registros, visitas, fmtDuracion, filterDateFrom, filterDateTo]);
 
   if (showForm && !isViewer) return (
     <NuevoRegistroForm user={user} sedes={sedes} empresas={empresas} registros={registros}
@@ -2515,6 +2740,17 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
           )}
         </div>
         <div id="mc-topbar-actions" style={{ display: "flex", gap: 6 }}>
+          {/* Botón "Ver como" visible en móvil/tablet */}
+          {onSetViewAs && (
+            <button id="mc-viewas-btn" onClick={() => setShowViewAsSheet(true)} style={{
+              background: viewAs !== "admin" ? "rgba(125,209,5,.25)" : "rgba(255,255,255,.1)",
+              border: "none", color: viewAs !== "admin" ? "#7dd105" : "rgba(255,255,255,.7)",
+              width: 36, height: 36, borderRadius: 8, cursor: "pointer", fontSize: 16,
+              display: "none", alignItems: "center", justifyContent: "center"
+            }}>
+              {{"admin":"👑","viewer":"👁️","comercial":"🏭","security":"🛡️"}[viewAs]}
+            </button>
+          )}
           {!isViewer && !isComercial && (
             <button onClick={() => setShowForm(true)} style={{
               background: T.brand, border: "none", color: T.navy, padding: "7px 14px", borderRadius: 8,
@@ -2551,7 +2787,36 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
         </div>
       </div>
 
-      <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
+      {/* ── ViewAs sheet (móvil/tablet) ── */}
+      {showViewAsSheet && onSetViewAs && (
+        <>
+          <div id="mc-viewas-overlay" onClick={() => setShowViewAsSheet(false)} />
+          <div id="mc-viewas-sheet" style={{ background: T.white, padding: "20px 20px 36px", boxShadow: "0 -8px 40px rgba(0,0,0,.25)" }}>
+            <div style={{ width: 40, height: 4, borderRadius: 99, background: T.border, margin: "0 auto 20px" }} />
+            <div style={{ fontSize: 11, fontWeight: 800, color: T.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 14 }}>Vista previa como</div>
+            {[["admin","👑 Admin","Acceso completo"],["viewer","👁️ Espectador","Solo lectura"],["comercial","🏭 Comercial","Vista comercial"],["security","🛡️ Guardia","Vista de acceso"]].map(([k,label,desc]) => (
+              <button key={k} onClick={() => { onSetViewAs(k); setShowViewAsSheet(false); }} style={{
+                width: "100%", display: "flex", alignItems: "center", gap: 14, padding: "14px 16px",
+                borderRadius: 12, border: `2px solid ${viewAs===k ? T.brand : T.border}`,
+                background: viewAs===k ? T.brandLight : T.white,
+                cursor: "pointer", marginBottom: 10, textAlign: "left"
+              }}>
+                <span style={{ fontSize: 24 }}>{label.split(" ")[0]}</span>
+                <div>
+                  <div style={{ fontSize: 14, fontWeight: 800, color: T.navy }}>{label.slice(2)}</div>
+                  <div style={{ fontSize: 12, color: T.muted }}>{desc}</div>
+                </div>
+                {viewAs===k && <span style={{ marginLeft:"auto", color: T.brand, fontSize: 18, fontWeight: 900 }}>✓</span>}
+              </button>
+            ))}
+          </div>
+        </>
+      )}
+
+      <div style={{ display: "flex", flex: 1, overflow: "hidden", position: "relative" }}>
+        {/* Sidebar overlay — móvil */}
+        {sidebarOpen && <div id="mc-sidebar-overlay" onClick={() => setSidebarOpen(false)} />}
+
         {/* Sidebar */}
         {sidebarOpen && activeTab !== "acuerdos" && activeTab !== "cumplimiento" && (
           <div data-sidebar="true" style={{ width: 260, background: T.white, borderRight: `1px solid ${T.border}`, padding: 20, overflowY: "auto", flexShrink: 0 }}>
@@ -2572,6 +2837,21 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
                   <div><span style={{ fontWeight: 800, color: "#6ee7b7" }}>{visitas.filter(v => v.status === "completo").length}</span><span style={{ fontSize: 11, color: T.muted }}> completas</span></div>
                   <div><span style={{ fontWeight: 800, color: T.amber }}>{visitas.filter(v => v.status === "adentro").length}</span><span style={{ fontSize: 11, color: T.muted }}> adentro</span></div>
                 </div>
+              )}
+            </div>
+
+            <p style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Búsqueda de texto</p>
+            <div style={{ position:"relative", marginBottom:16 }}>
+              <span style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", fontSize:14, color:T.muted, pointerEvents:"none" }}>🔍</span>
+              <input
+                type="text"
+                value={filterSearch}
+                onChange={e => setFilterSearch(e.target.value)}
+                placeholder="Proveedor, sede, guardia..."
+                style={{ width:"100%", padding:"10px 12px 10px 32px", borderRadius:8, border:`1px solid ${filterSearch ? T.brand : T.border}`, fontSize:13, background:filterSearch ? "#fffbeb" : T.white, boxSizing:"border-box" }}
+              />
+              {filterSearch && (
+                <button onClick={() => setFilterSearch("")} style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:14, color:T.muted }}>✕</button>
               )}
             </div>
 
@@ -2654,8 +2934,8 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
               </div>
             </div>
 
-            {(filterSede || filterProveedor || filterDateFrom || filterDateTo) && (
-              <button onClick={() => { setFilterSede(""); setFilterProveedor(""); setFilterDateFrom(""); setFilterDateTo(""); }}
+            {(filterSede || filterProveedor || filterDateFrom || filterDateTo || filterSearch) && (
+              <button onClick={() => { setFilterSede(""); setFilterProveedor(""); setFilterDateFrom(""); setFilterDateTo(""); setFilterSearch(""); }}
                 style={{ width: "100%", padding: "8px", borderRadius: 8, border: `1px solid ${T.border}`, background: T.white, cursor: "pointer", fontSize: 12, color: T.slate, fontWeight: 600, marginTop: 10 }}>
                 ✕ Limpiar todos los filtros
               </button>
@@ -2673,15 +2953,15 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
         )}
 
         {/* Tab switcher + Movement/Visitas list */}
-        <div style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
+        <div id="mc-main-content" style={{ flex: 1, overflowY: "auto", display: "flex", flexDirection: "column" }}>
 
-          {/* Tabs */}
-          <div style={{ background: T.white, borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
+          {/* Tabs (desktop/tablet) */}
+          <div id="mc-tabs-wrapper" style={{ background: T.white, borderBottom: `1px solid ${T.border}`, flexShrink: 0 }}>
             {/* Tab buttons */}
             <div id="mc-tabs" style={{ display: "flex", padding: "0 20px", overflowX: "auto" }}>
               {[
-                ["movimientos", "📋 Movimientos", filtered.filter(r => !filterTipo || r.tipo === filterTipo).length],
-                ["visitas",     "🔄 Visitas",     visitas.filter(v => !filterStatus || v.status === filterStatus).length],
+                ["movimientos", "📋 Movimientos", filteredMovs.length],
+                ["visitas",     "🔄 Visitas",     filteredVisitasList.length],
                 ["acuerdos",    "🤝 Acuerdos",    acuerdos.length],
                 ["cumplimiento","📊 Cumplimiento", ""],
               ].map(([t, l, c]) => (
@@ -2711,8 +2991,8 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
                   { v: "salida",  label: "↓ Salidas",   bg: T.redLight,   col: T.red,     activeBg: T.red },
                 ].map(chip => {
                   const count = chip.v === ""
-                    ? filtered.length
-                    : filtered.filter(r => r.tipo === chip.v).length;
+                    ? filteredMovs.length
+                    : filteredMovs.filter(r => r.tipo === chip.v).length;
                   const active = filterTipo === chip.v;
                   return (
                     <button key={chip.v} onClick={() => setFilterTipo(chip.v)} style={{
@@ -2744,8 +3024,8 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
                   { v: "solo_salida", label: "⚠️ Sin entrada", bg: T.redLight,   col: T.red,     activeBg: T.red },
                 ].map(chip => {
                   const count = chip.v === ""
-                    ? visitas.length
-                    : visitas.filter(v => v.status === chip.v).length;
+                    ? filteredVisitasList.length
+                    : filteredVisitasList.filter(v => v.status === chip.v).length;
                   const active = filterStatus === chip.v;
                   return (
                     <button key={chip.v} onClick={() => setFilterStatus(chip.v)} style={{
@@ -2773,10 +3053,10 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
 
             {/* ── MOVIMIENTOS TAB ── */}
             {activeTab === "movimientos" && (<>
-              {Object.keys(byDate).length === 0 && (
+              {filteredMovs.length === 0 && (
                 <div style={{ textAlign: "center", padding: "64px 20px", color: T.muted }}>
                   <div style={{ fontSize: 56 }}>📋</div>
-                  <div style={{ fontSize: 16, fontWeight: 600, marginTop: 8 }}>Sin movimientos{filterSede || filterProveedor ? " con estos filtros" : ""}</div>
+                  <div style={{ fontSize: 16, fontWeight: 600, marginTop: 8 }}>Sin movimientos{filterSede || filterProveedor || filterSearch ? " con estos filtros" : ""}</div>
                   <div style={{ fontSize: 13, marginTop: 4 }}>Los registros aparecerán aquí en tiempo real</div>
                 </div>
               )}
@@ -2819,87 +3099,81 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
                   ))}
                 </div>
               ))}
+              <PaginationBar page={pageMovs} total={filteredMovs.length} pageSize={PAGE_SIZE} onPage={setPageMovs} />
             </>)}
 
             {/* ── VISITAS TAB ── */}
             {activeTab === "visitas" && (<>
-              {visitas.filter(v => !filterStatus || v.status === filterStatus).length === 0 && (
+              {filteredVisitasList.length === 0 && (
                 <div style={{ textAlign: "center", padding: "64px 20px", color: T.muted }}>
                   <div style={{ fontSize: 56 }}>🔄</div>
                   <div style={{ fontSize: 16, fontWeight: 600, marginTop: 8 }}>Sin visitas{filterStatus ? " con este filtro" : " registradas"}</div>
                   <div style={{ fontSize: 13, marginTop: 4 }}>Las visitas se calculan automáticamente al registrar entradas y salidas</div>
                 </div>
               )}
-              {(() => {
-                const visitasFiltradas = visitas.filter(v => !filterStatus || v.status === filterStatus);
-                const byDateV = visitasFiltradas.reduce((acc, v) => {
-                  const d = new Date(v.fecha).toDateString();
-                  (acc[d] = acc[d] || []).push(v);
-                  return acc;
-                }, {});
-                return Object.entries(byDateV).map(([dateStr, vList]) => (
-                  <div key={dateStr} style={{ marginBottom: 28 }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
-                      <div style={{ height: 1, flex: 1, background: T.border }} />
-                      <div style={{ fontSize: 12, fontWeight: 700, color: T.slate, textTransform: "capitalize", padding: "4px 12px", background: T.white, borderRadius: 99, border: `1px solid ${T.border}` }}>
-                        {fmtDateLong(new Date(dateStr))}
-                      </div>
-                      <span style={{ background: T.navyMid, color: "#fff", borderRadius: 99, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>{vList.length}</span>
-                      <div style={{ height: 1, flex: 1, background: T.border }} />
+              {Object.entries(byDateVisitas).map(([dateStr, vList]) => (
+                <div key={dateStr} style={{ marginBottom: 28 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 10, marginBottom: 12 }}>
+                    <div style={{ height: 1, flex: 1, background: T.border }} />
+                    <div style={{ fontSize: 12, fontWeight: 700, color: T.slate, textTransform: "capitalize", padding: "4px 12px", background: T.white, borderRadius: 99, border: `1px solid ${T.border}` }}>
+                      {fmtDateLong(new Date(dateStr))}
                     </div>
-                    {vList.map(v => {
-                      const statusCfg = {
-                        completo:    { bg: T.greenLight,  border: T.green,    icon: "✅", label: "Completa",      col: T.green },
-                        adentro:     { bg: T.amberLight,  border: T.amber,    icon: "🟡", label: "Adentro",       col: "#92400e" },
-                        solo_salida: { bg: T.redLight,    border: T.red,      icon: "⚠️", label: "Sin entrada",   col: T.red },
-                      }[v.status];
-                      return (
-                        <div key={v.visitId} onClick={() => setDetailVisita(v)} style={{
-                          background: T.white, borderRadius: 12, padding: "14px 16px", marginBottom: 8,
-                          cursor: "pointer", boxShadow: "0 1px 4px rgba(0,0,0,.04)",
-                          border: `1px solid ${T.border}`,
-                          borderLeft: `4px solid ${statusCfg.border}`,
-                          transition: "transform .1s, box-shadow .1s"
-                        }}
-                          onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,.1)"; }}
-                          onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,.04)"; }}
-                        >
-                          <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
-                            <div style={{ flex: 1 }}>
-                              <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
-                                <span style={{ fontSize: 16, fontWeight: 800, color: T.navyMid }}>{v.proveedor}</span>
-                                <span style={{ background: statusCfg.bg, color: statusCfg.col, borderRadius: 99, padding: "2px 10px", fontSize: 11, fontWeight: 700 }}>
-                                  {statusCfg.icon} {statusCfg.label}
-                                </span>
-                              </div>
-                              <div style={{ display: "flex", gap: 16, fontSize: 12, color: T.muted }}>
-                                <span>📍 {v.sedeName}</span>
-                                {v.entrada && <span>↑ Entrada: <strong style={{ color: T.navyMid }}>{fmtTime(v.entrada.timestamp)}</strong></span>}
-                                {v.salida  && <span>↓ Salida: <strong style={{ color: T.navyMid }}>{fmtTime(v.salida.timestamp)}</strong></span>}
-                              </div>
+                    <span style={{ background: T.navyMid, color: "#fff", borderRadius: 99, padding: "2px 8px", fontSize: 11, fontWeight: 700 }}>{vList.length}</span>
+                    <div style={{ height: 1, flex: 1, background: T.border }} />
+                  </div>
+                  {vList.map(v => {
+                    const statusCfg = {
+                      completo:    { bg: T.greenLight,  border: T.green,    icon: "✅", label: "Completa",      col: T.green },
+                      adentro:     { bg: T.amberLight,  border: T.amber,    icon: "🟡", label: "Adentro",       col: "#92400e" },
+                      solo_salida: { bg: T.redLight,    border: T.red,      icon: "⚠️", label: "Sin entrada",   col: T.red },
+                    }[v.status];
+                    return (
+                      <div key={v.visitId} onClick={() => setDetailVisita(v)} style={{
+                        background: T.white, borderRadius: 12, padding: "14px 16px", marginBottom: 8,
+                        cursor: "pointer", boxShadow: "0 1px 4px rgba(0,0,0,.04)",
+                        border: `1px solid ${T.border}`,
+                        borderLeft: `4px solid ${statusCfg.border}`,
+                        transition: "transform .1s, box-shadow .1s"
+                      }}
+                        onMouseEnter={e => { e.currentTarget.style.transform = "translateY(-1px)"; e.currentTarget.style.boxShadow = "0 4px 12px rgba(0,0,0,.1)"; }}
+                        onMouseLeave={e => { e.currentTarget.style.transform = ""; e.currentTarget.style.boxShadow = "0 1px 4px rgba(0,0,0,.04)"; }}
+                      >
+                        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start" }}>
+                          <div style={{ flex: 1 }}>
+                            <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
+                              <span style={{ fontSize: 16, fontWeight: 800, color: T.navyMid }}>{v.proveedor}</span>
+                              <span style={{ background: statusCfg.bg, color: statusCfg.col, borderRadius: 99, padding: "2px 10px", fontSize: 11, fontWeight: 700 }}>
+                                {statusCfg.icon} {statusCfg.label}
+                              </span>
                             </div>
-                            <div style={{ textAlign: "right", marginLeft: 12 }}>
-                              {v.duracionMin !== null ? (
-                                <div>
-                                  <div style={{ fontSize: 20, fontWeight: 900, color: T.navy, fontFamily: "'JetBrains Mono',monospace" }}>{fmtDuracion(v.duracionMin)}</div>
-                                  <div style={{ fontSize: 11, color: T.muted }}>tiempo en sede</div>
-                                </div>
-                              ) : v.status === "adentro" ? (
-                                <div>
-                                  <div className="pulse-dot" style={{ margin: "0 auto 4px" }} />
-                                  <div style={{ fontSize: 11, color: T.muted }}>En curso</div>
-                                </div>
-                              ) : (
-                                <span style={{ fontSize: 11, color: T.muted }}>—</span>
-                              )}
+                            <div style={{ display: "flex", gap: 16, fontSize: 12, color: T.muted }}>
+                              <span>📍 {v.sedeName}</span>
+                              {v.entrada && <span>↑ Entrada: <strong style={{ color: T.navyMid }}>{fmtTime(v.entrada.timestamp)}</strong></span>}
+                              {v.salida  && <span>↓ Salida: <strong style={{ color: T.navyMid }}>{fmtTime(v.salida.timestamp)}</strong></span>}
                             </div>
                           </div>
+                          <div style={{ textAlign: "right", marginLeft: 12 }}>
+                            {v.duracionMin !== null ? (
+                              <div>
+                                <div style={{ fontSize: 20, fontWeight: 900, color: T.navy, fontFamily: "'JetBrains Mono',monospace" }}>{fmtDuracion(v.duracionMin)}</div>
+                                <div style={{ fontSize: 11, color: T.muted }}>tiempo en sede</div>
+                              </div>
+                            ) : v.status === "adentro" ? (
+                              <div>
+                                <div className="pulse-dot" style={{ margin: "0 auto 4px" }} />
+                                <div style={{ fontSize: 11, color: T.muted }}>En curso</div>
+                              </div>
+                            ) : (
+                              <span style={{ fontSize: 11, color: T.muted }}>—</span>
+                            )}
+                          </div>
                         </div>
-                      );
-                    })}
-                  </div>
-                ));
-              })()}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+              <PaginationBar page={pageVisitas} total={filteredVisitasList.length} pageSize={PAGE_SIZE} onPage={setPageVisitas} />
             </>)}
 
             {/* ── ACUERDOS TAB ── */}
@@ -2922,12 +3196,35 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
                 visitas={visitas}
                 empresas={empresas}
                 sedes={sedes}
+                isComercial={isComercial}
               />
             )}
 
           </div>
         </div>
       </div>
+
+      {/* ── Bottom Navigation (móvil) ── */}
+      <nav id="mc-bottom-nav">
+        {[
+          ["movimientos","📋","Registros"],
+          ["visitas","🔄","Visitas"],
+          ["acuerdos","🤝","Acuerdos"],
+          ["cumplimiento","📊","Cumpl."],
+        ].map(([t,icon,label]) => (
+          <button key={t} className={`mc-bnav-btn${activeTab===t?" active":""}`}
+            onClick={() => setActiveTab(t)}>
+            <span className="mc-bnav-icon">{icon}</span>
+            <span className="mc-bnav-label" style={{ color: activeTab===t?"#7dd105":"rgba(255,255,255,.45)" }}>{label}</span>
+          </button>
+        ))}
+        {(!isViewer && !isComercial) && (
+          <button className="mc-bnav-btn" onClick={() => setShowForm(true)}>
+            <span className="mc-bnav-icon" style={{ background: "#7dd105", borderRadius: "50%", width:32, height:32, display:"flex", alignItems:"center", justifyContent:"center", fontSize:20, color:"#05200b", fontWeight:900 }}>+</span>
+            <span className="mc-bnav-label" style={{ color:"#7dd105" }}>Nuevo</span>
+          </button>
+        )}
+      </nav>
 
       {detailReg && (
         <DetailModal reg={detailReg} onClose={() => setDetailReg(null)}
@@ -2941,75 +3238,11 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
           onClose={() => setEditReg(null)} />
       )}
 
-      {/* ── DETALLE VISITA MODAL ── */}
-      {detailVisita && (
-        <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.55)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}
-          onClick={e => e.target===e.currentTarget && setDetailVisita(null)}>
-          <div style={{ background:T.white, borderRadius:18, width:"100%", maxWidth:460, maxHeight:"90vh", overflowY:"auto", boxShadow:"0 24px 64px rgba(0,0,0,.25)" }}>
-            {(() => {
-              const v = detailVisita;
-              const statusCfg = {
-                completo:    { bg: T.greenLight,  col: T.green,    icon: "✅", label: "Visita completa" },
-                adentro:     { bg: T.amberLight,  col: "#92400e",  icon: "🟡", label: "Aún adentro" },
-                solo_salida: { bg: T.redLight,    col: T.red,      icon: "⚠️", label: "Sin entrada registrada" },
-              }[v.status];
-              return (<>
-                <div style={{ padding:"20px 20px 0", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
-                  <span style={{ fontSize:12, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:1 }}>Detalle de visita</span>
-                  <button onClick={() => setDetailVisita(null)} style={{ background:T.bg, border:"none", width:32, height:32, borderRadius:8, cursor:"pointer", fontSize:18, color:T.slate }}>×</button>
-                </div>
-                <div style={{ padding:"16px 20px 20px", textAlign:"center", borderBottom:`1px solid ${T.border}` }}>
-                  <span style={{ background:statusCfg.bg, color:statusCfg.col, borderRadius:99, padding:"5px 16px", fontSize:13, fontWeight:800 }}>
-                    {statusCfg.icon} {statusCfg.label}
-                  </span>
-                  <div style={{ fontSize:24, fontWeight:900, color:T.navy, marginTop:10 }}>{v.proveedor}</div>
-                  <div style={{ fontSize:13, color:T.muted, marginTop:4 }}>📍 {v.sedeName}</div>
-                  {v.duracionMin !== null && (
-                    <div style={{ marginTop:12, display:"inline-flex", alignItems:"center", gap:8, background:T.navy, borderRadius:12, padding:"8px 20px" }}>
-                      <span style={{ fontSize:28, fontWeight:900, color:"#fff", fontFamily:"'JetBrains Mono',monospace" }}>{fmtDuracion(v.duracionMin)}</span>
-                      <span style={{ fontSize:12, color:T.muted }}>en sede</span>
-                    </div>
-                  )}
-                  {v.status === "adentro" && (
-                    <div style={{ marginTop:12, display:"inline-flex", alignItems:"center", gap:8, background:T.amberLight, borderRadius:12, padding:"8px 20px" }}>
-                      <div className="pulse-dot" />
-                      <span style={{ fontSize:13, fontWeight:700, color:"#92400e" }}>Actualmente en la sede</span>
-                    </div>
-                  )}
-                </div>
-
-                {/* Entrada */}
-                {v.entrada && (<>
-                  <div style={{ padding:"10px 16px 4px", fontSize:11, fontWeight:700, color:T.green, textTransform:"uppercase", letterSpacing:1 }}>↑ Registro de Entrada</div>
-                  <InfoRow label="Fecha" value={fmtDate(v.entrada.timestamp)} />
-                  <InfoRow label="Hora entrada" value={fmtTime(v.entrada.timestamp)} />
-                  <InfoRow label="Guardia" value={v.entrada.guardiaName} />
-                  <InfoRow label="GPS" value={v.entrada.gps ? `${v.entrada.gps.lat}, ${v.entrada.gps.lng}` : "No disponible"} />
-                  <InfoRow label="N° Registro" value={`#${String(v.entrada.consecutivo).padStart(4,"0")}`} />
-                </>)}
-
-                {/* Salida */}
-                {v.salida && (<>
-                  <div style={{ padding:"10px 16px 4px", fontSize:11, fontWeight:700, color:T.red, textTransform:"uppercase", letterSpacing:1 }}>↓ Registro de Salida</div>
-                  <InfoRow label="Fecha" value={fmtDate(v.salida.timestamp)} />
-                  <InfoRow label="Hora salida" value={fmtTime(v.salida.timestamp)} />
-                  <InfoRow label="Guardia" value={v.salida.guardiaName} />
-                  <InfoRow label="GPS" value={v.salida.gps ? `${v.salida.gps.lat}, ${v.salida.gps.lng}` : "No disponible"} />
-                  <InfoRow label="N° Registro" value={`#${String(v.salida.consecutivo).padStart(4,"0")}`} />
-                </>)}
-
-                <div style={{ height:16 }} />
-              </>);
-            })()}
-          </div>
-        </div>
-      )}
-
       {/* ── VISITA DETAIL MODAL ── */}
       {detailVisita && (
         <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.55)", zIndex:100, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}
           onClick={e => e.target===e.currentTarget && setDetailVisita(null)}>
-          <div style={{ background:T.white, borderRadius:18, width:"100%", maxWidth:460, maxHeight:"90vh", overflowY:"auto", boxShadow:"0 24px 64px rgba(0,0,0,.25)" }}>
+          <div data-modal="true" style={{ background:T.white, borderRadius:18, width:"100%", maxWidth:460, maxHeight:"90vh", overflowY:"auto", boxShadow:"0 24px 64px rgba(0,0,0,.25)" }}>
             <div style={{ padding:"20px 20px 0", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <span style={{ fontSize:12, fontWeight:700, color:T.muted, textTransform:"uppercase", letterSpacing:1 }}>Detalle de visita</span>
               <button onClick={() => setDetailVisita(null)} style={{ background:T.bg, border:"none", width:32, height:32, borderRadius:8, cursor:"pointer", fontSize:18, color:T.slate }}>×</button>
@@ -3095,12 +3328,12 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
       {showExportModal && (
         <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.6)", zIndex:200, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}
           onClick={e => e.target===e.currentTarget && setShowExportModal(false)}>
-          <div style={{ background:T.white, borderRadius:20, width:"100%", maxWidth:480, maxHeight:"85vh", display:"flex", flexDirection:"column", boxShadow:"0 24px 64px rgba(0,0,0,.25)", overflow:"hidden" }}>
+          <div data-modal="true" style={{ background:T.white, borderRadius:20, width:"100%", maxWidth:480, maxHeight:"85vh", display:"flex", flexDirection:"column", boxShadow:"0 24px 64px rgba(0,0,0,.25)", overflow:"hidden" }}>
 
             {/* Header */}
             <div style={{ background:"#05200b", padding:"20px 24px", display:"flex", justifyContent:"space-between", alignItems:"center" }}>
               <div>
-                <div style={{ color:"#fff", fontSize:20, fontWeight:900 }}>📊 Exportar a CSV</div>
+                <div style={{ color:"#fff", fontSize:20, fontWeight:900 }}>📊 Exportar a Excel</div>
                 <div style={{ color:"#7dd105", fontSize:12, marginTop:4, display:"flex", flexWrap:"wrap", gap:8 }}>
                   <span>{registros.length} registros totales</span>
                   <span>·</span>
@@ -3155,18 +3388,18 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
                 <div style={{ display:"flex", alignItems:"center", gap:8, marginBottom:14 }}>
                   <div style={{ width:32, height:32, background:"#dcfce7", borderRadius:8, display:"flex", alignItems:"center", justifyContent:"center", fontSize:18 }}>⬇️</div>
                   <div>
-                    <div style={{ fontSize:15, fontWeight:800, color:T.navy }}>Descarga directa</div>
-                    <div style={{ fontSize:12, color:T.muted }}>Genera el archivo .xlsx en este dispositivo</div>
+                    <div style={{ fontSize:15, fontWeight:800, color:T.navy }}>Descarga directa (.xlsx)</div>
+                    <div style={{ fontSize:12, color:T.muted }}>Archivo Excel nativo — abre directo en Excel y Google Sheets</div>
                   </div>
                 </div>
-                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr 1fr", gap:10 }}>
+                <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:10 }}>
                   <button onClick={() => exportarExcel("todos")} disabled={exporting} style={{
                     padding:"14px 8px", borderRadius:12, border:`2px solid #16a34a`,
                     background:"#f0fdf4", color:"#15803d", cursor:"pointer", fontWeight:700, fontSize:12,
                     display:"flex", flexDirection:"column", alignItems:"center", gap:4
                   }}>
                     {exporting ? <Spinner /> : <span style={{fontSize:22}}>📋</span>}
-                    <span>Todos</span>
+                    <span>Todos los registros</span>
                     <span style={{ fontSize:10, fontWeight:400, color:T.muted }}>{registros.length} filas</span>
                   </button>
                   <button onClick={() => exportarExcel("filtrado")} disabled={exporting} style={{
@@ -3175,7 +3408,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
                     display:"flex", flexDirection:"column", alignItems:"center", gap:4
                   }}>
                     {exporting ? <Spinner /> : <span style={{fontSize:22}}>🔍</span>}
-                    <span>Filtrado</span>
+                    <span>Filtrado actual</span>
                     <span style={{ fontSize:10, fontWeight:400, color:T.muted }}>{filtered.length} filas</span>
                   </button>
                   <button onClick={() => exportarExcel("visitas")} disabled={exporting} style={{
@@ -3184,12 +3417,21 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
                     display:"flex", flexDirection:"column", alignItems:"center", gap:4
                   }}>
                     {exporting ? <Spinner /> : <span style={{fontSize:22}}>🔄</span>}
-                    <span>Visitas</span>
+                    <span>Solo visitas</span>
                     <span style={{ fontSize:10, fontWeight:400, color:T.muted }}>{visitas.length} visitas</span>
+                  </button>
+                  <button onClick={() => exportarExcel("ambos")} disabled={exporting} style={{
+                    padding:"14px 8px", borderRadius:12, border:`2px solid #ea580c`,
+                    background:"#fff7ed", color:"#c2410c", cursor:"pointer", fontWeight:700, fontSize:12,
+                    display:"flex", flexDirection:"column", alignItems:"center", gap:4
+                  }}>
+                    {exporting ? <Spinner /> : <span style={{fontSize:22}}>📦</span>}
+                    <span>Completo (2 hojas)</span>
+                    <span style={{ fontSize:10, fontWeight:400, color:T.muted }}>Mov. + Visitas</span>
                   </button>
                 </div>
                 <div style={{ marginTop:10, padding:"10px 12px", background:T.bg, borderRadius:8, fontSize:12, color:T.slate }}>
-                  💡 Descarga como <strong>MercaControl_[fecha].csv</strong> — Excel lo abre automáticamente con todos los datos organizados en columnas. También compatible con Google Sheets.
+                  💡 Genera archivos <strong>.xlsx nativos</strong> con columnas formateadas, listas para abrir en Excel o Google Sheets sin configuración adicional.
                 </div>
               </div>
 
