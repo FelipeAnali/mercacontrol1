@@ -923,7 +923,8 @@ function NuevoRegistroForm({ user, sedes, empresas, registros, onSave, onCancel 
       return;
     }
     setSaving(true);
-    await onSave({ tipo, proveedor: empSel.nombre, proveedorId, gps, sedeIdOverride: isAdmin ? sedeIdSel : null });
+    // Cierra el formulario de inmediato — no espera a que guarde
+    onSave({ tipo, proveedor: empSel.nombre, proveedorId, gps, sedeIdOverride: isAdmin ? sedeIdSel : null });
     setSaving(false);
   };
 
@@ -1105,7 +1106,7 @@ function SecurityView({ user, sedes, empresas, registros, onNuevoRegistro, onLog
 
   if (showForm) return (
     <NuevoRegistroForm user={user} sedes={sedes} empresas={empresas} registros={registros}
-      onSave={async (d) => { await onNuevoRegistro(d); setShowForm(false); }}
+      onSave={(d) => { setShowForm(false); onNuevoRegistro(d); }}
       onCancel={() => setShowForm(false)} />
   );
 
@@ -2849,7 +2850,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
 
   if (showForm && !isViewer) return (
     <NuevoRegistroForm user={user} sedes={sedes} empresas={empresas} registros={registros}
-      onSave={async (d) => { await onNuevoRegistro(d); setShowForm(false); }}
+      onSave={(d) => { setShowForm(false); onNuevoRegistro(d); }}
       onCancel={() => setShowForm(false)} />
   );
 
