@@ -6,18 +6,6 @@
   <meta name="theme-color" content="#05200b" />
   <meta name="description" content="Control de Mercaderistas - Supertiendas Cañaveral" />
 
-  <!-- Quitar slash final para que Azure AD no rechace el redirect URI -->
-  <script>
-    (function() {
-      var path = window.location.pathname;
-      if (path.slice(-1) === '/' && path.length > 1) {
-        window.location.replace(
-          window.location.origin + path.slice(0, -1) + window.location.search + window.location.hash
-        );
-      }
-    })();
-  </script>
-
   <!-- PWA Meta Tags -->
   <meta name="mobile-web-app-capable" content="yes" />
   <meta name="apple-mobile-web-app-capable" content="yes" />
@@ -42,7 +30,7 @@
         auth: {
           clientId: "0652ef4a-cd47-4994-91ac-afbb86a8a2ba",
           authority: "https://login.microsoftonline.com/ae0b754a-1500-4ce6-b39e-59d483b9ae9c",
-          redirectUri: window.location.origin + window.location.pathname.replace(/\/$/, ""),
+          redirectUri: "https://felipeanali.github.io/mercacontrol1",
         },
         cache: { cacheLocation: "sessionStorage", storeAuthStateInCookie: true },
       });
@@ -354,7 +342,7 @@ function getMsal() {
       auth: {
         clientId: MSAL_CLIENT_ID,
         authority: `https://login.microsoftonline.com/${MSAL_TENANT_ID}`,
-        redirectUri: window.location.origin + window.location.pathname.replace(/\/$/, ""),
+        redirectUri: "https://felipeanali.github.io/mercacontrol1",
       },
       cache: { cacheLocation: "sessionStorage", storeAuthStateInCookie: true },
     });
