@@ -458,11 +458,22 @@ function useSharedStorage(key, initial) {
   const [loaded, setLoaded] = useState(true);
 
   const save = useCallback(async (v) => {
-    const next = typeof v === "function" ? v(val) : v;
-    setVal(next);
-    try { localStorage.setItem(key, JSON.stringify(next)); } catch (_) {}
-    return next;
-  }, [key, val]);
+    if (typeof v === "function") {
+      // Actualización funcional — React garantiza que recibe el estado más reciente
+      let saved;
+      setVal(prev => {
+        const next = v(prev);
+        saved = next;
+        try { localStorage.setItem(key, JSON.stringify(next)); } catch (_) {}
+        return next;
+      });
+      return saved;
+    } else {
+      setVal(v);
+      try { localStorage.setItem(key, JSON.stringify(v)); } catch (_) {}
+      return v;
+    }
+  }, [key]);
 
   return [val, save, loaded];
 }
@@ -4266,14 +4277,14 @@ function App() {
     setSyncing(false);
   }, [registros, setRegistros]);
 
-  // Real-time polling every 5s
+  // Real-time polling every 5s — lee de localStorage directamente
   useEffect(() => {
     if (!currentUser) return;
-    const poll = setInterval(async () => {
+    const poll = setInterval(() => {
       try {
-        const r = await window.storage.get("mreg-v1-registros", true);
-        if (r) {
-          const fresh = JSON.parse(r.value);
+        const raw = localStorage.getItem("mreg-v1-registros");
+        if (raw) {
+          const fresh = JSON.parse(raw);
           setRegistros(prev => JSON.stringify(fresh) !== JSON.stringify(prev) ? fresh : prev);
         }
       } catch (_) {}
@@ -4296,24 +4307,27 @@ function App() {
   const handleNuevoRegistro = useCallback(async (data) => {
     const resolvedSedeId = data.sedeIdOverride || currentUser.sedeId;
     const sede = sedes.find(s => s.id === resolvedSedeId);
-    const maxConsec = registros.length > 0 ? Math.max(...registros.map(r => r.consecutivo || 0)) : 0;
-    const newReg = {
-      id: `reg-${Date.now()}`,
-      consecutivo: maxConsec + 1,
-      proveedor: data.proveedor,
-      proveedorId: data.proveedorId,
-      tipo: data.tipo,
-      sedeId: resolvedSedeId,
-      sedeName: sede?.nombre || "—",
-      guardiaName: currentUser.nombre,
-      guardiaId: currentUser.id,
-      gps: data.gps || null,
-      timestamp: Date.now(),
-      pendingSync: !online,   // flagged for sync when offline
-      syncedAt: online ? Date.now() : null,
-    };
-    await setRegistros([...registros, newReg]);
-  }, [registros, sedes, currentUser, setRegistros, online]);
+    // Actualización funcional — siempre usa el estado más reciente, nunca el closure viejo
+    await setRegistros(prev => {
+      const maxConsec = prev.length > 0 ? Math.max(...prev.map(r => r.consecutivo || 0)) : 0;
+      const newReg = {
+        id: `reg-${Date.now()}`,
+        consecutivo: maxConsec + 1,
+        proveedor: data.proveedor,
+        proveedorId: data.proveedorId,
+        tipo: data.tipo,
+        sedeId: resolvedSedeId,
+        sedeName: sede?.nombre || "—",
+        guardiaName: currentUser.nombre,
+        guardiaId: currentUser.id,
+        gps: data.gps || null,
+        timestamp: Date.now(),
+        pendingSync: !online,
+        syncedAt: online ? Date.now() : null,
+      };
+      return [...prev, newReg];
+    });
+  }, [sedes, currentUser, setRegistros, online]);
 
   // ── helper audit ──────────────────────────────────────────────────────────
   const logAudit = useCallback(async (accion, detalle, regId) => {
