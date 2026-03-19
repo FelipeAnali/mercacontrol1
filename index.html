@@ -861,8 +861,10 @@ function NuevoRegistroForm({ user, sedes, empresas, registros, onSave, onCancel 
   const [saving, setSaving] = useState(false);
   const [now, setNow] = useState(new Date());
   const [showList, setShowList] = useState(false);
+  const [dupWarning, setDupWarning] = useState(null);   // { count, horas[] } | null
+  const [dupConfirmed, setDupConfirmed] = useState(false);
 
-  const isAdmin = !user.sedeId; // admin no tiene sede fija
+  const isAdmin = !user.sedeId;
   const sedesActivas = useMemo(() => sedes.filter(s => s.activa), [sedes]);
   const sedeMostrada = sedes.find(s => s.id === sedeIdSel);
   const empActivas = useMemo(() => empresas.filter(e => e.activa), [empresas]);
@@ -870,6 +872,32 @@ function NuevoRegistroForm({ user, sedes, empresas, registros, onSave, onCancel 
     empActivas.filter(e => e.nombre.toLowerCase().includes(busqueda.toLowerCase())),
     [empActivas, busqueda]);
   const empSel = empActivas.find(e => e.id === proveedorId);
+
+  // ── Detectar entradas activas (entrada sin salida emparejada hoy) ────────────
+  const entradasActivas = useMemo(() => {
+    if (!proveedorId || !sedeIdSel || tipo !== "entrada") return [];
+    const hoy = new Date().toDateString();
+    // Todos los registros de hoy para este proveedor+sede
+    const regsHoy = registros.filter(r =>
+      r.proveedorId === proveedorId &&
+      r.sedeId === sedeIdSel &&
+      new Date(r.timestamp).toDateString() === hoy
+    ).sort((a, b) => a.timestamp - b.timestamp);
+    // Emparejar: cada entrada busca su salida posterior
+    const usedSalidas = new Set();
+    const activas = [];
+    regsHoy.filter(r => r.tipo === "entrada").forEach(entrada => {
+      const salida = regsHoy.find(s =>
+        s.tipo === "salida" && !usedSalidas.has(s.id) && s.timestamp > entrada.timestamp
+      );
+      if (salida) { usedSalidas.add(salida.id); }
+      else { activas.push(entrada); } // entrada sin salida = sigue adentro
+    });
+    return activas;
+  }, [proveedorId, sedeIdSel, tipo, registros]);
+
+  // Reset confirmación cuando cambia proveedor, sede o tipo
+  useEffect(() => { setDupWarning(null); setDupConfirmed(false); }, [proveedorId, sedeIdSel, tipo]);
 
   useEffect(() => {
     const t = setInterval(() => setNow(new Date()), 1000);
@@ -886,6 +914,14 @@ function NuevoRegistroForm({ user, sedes, empresas, registros, onSave, onCancel 
 
   const handleSave = async () => {
     if (!tipo || !proveedorId || !sedeIdSel) return;
+    // Si es entrada y hay activas y aún no confirmó → mostrar advertencia
+    if (tipo === "entrada" && entradasActivas.length > 0 && !dupConfirmed) {
+      setDupWarning({
+        count: entradasActivas.length,
+        horas: entradasActivas.map(e => fmtTime(e.timestamp)),
+      });
+      return;
+    }
     setSaving(true);
     await onSave({ tipo, proveedor: empSel.nombre, proveedorId, gps, sedeIdOverride: isAdmin ? sedeIdSel : null });
     setSaving(false);
@@ -998,6 +1034,42 @@ function NuevoRegistroForm({ user, sedes, empresas, registros, onSave, onCancel 
                   </div>
                 )}
               </div>
+
+              {/* ── Advertencia duplicado activo ── */}
+              {tipo === "entrada" && entradasActivas.length > 0 && !dupConfirmed && (
+                <div style={{ background: "#fffbeb", border: "2px solid #f59e0b", borderRadius: 12, padding: "14px 16px", marginBottom: 4 }}>
+                  <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 8 }}>
+                    <span style={{ fontSize: 20 }}>⚠️</span>
+                    <span style={{ fontWeight: 800, fontSize: 14, color: "#92400e" }}>
+                      Entrada activa detectada
+                    </span>
+                  </div>
+                  <p style={{ fontSize: 13, color: "#78350f", marginBottom: 10 }}>
+                    <strong>{empSel?.nombre}</strong> ya tiene <strong>{entradasActivas.length}</strong> entrada{entradasActivas.length > 1 ? "s" : ""} activa{entradasActivas.length > 1 ? "s" : ""} sin salida en esta sede hoy
+                    {entradasActivas.length > 0 && ` (desde las ${entradasActivas[0] && fmtTime(entradasActivas[0].timestamp)})`}.
+                  </p>
+                  <p style={{ fontSize: 12, color: "#92400e", marginBottom: 12 }}>
+                    ¿Es un <strong>mercaderista adicional</strong> del mismo proveedor?
+                  </p>
+                  <div style={{ display: "flex", gap: 8 }}>
+                    <button onClick={() => { setProveedorId(""); setBusqueda(""); setDupWarning(null); }} style={{
+                      flex: 1, padding: "10px", borderRadius: 8, border: "2px solid #f59e0b",
+                      background: "#fff", color: "#92400e", fontWeight: 700, fontSize: 13, cursor: "pointer"
+                    }}>← Cambiar proveedor</button>
+                    <button onClick={() => { setDupConfirmed(true); }} style={{
+                      flex: 1, padding: "10px", borderRadius: 8, border: "none",
+                      background: "#f59e0b", color: "#fff", fontWeight: 800, fontSize: 13, cursor: "pointer"
+                    }}>✓ Sí, es adicional</button>
+                  </div>
+                </div>
+              )}
+
+              {/* Confirmado — badge informativo */}
+              {dupConfirmed && entradasActivas.length > 0 && (
+                <div style={{ background: "#f0fdf4", border: "1px solid #86efac", borderRadius: 8, padding: "8px 14px", marginBottom: 4, fontSize: 12, color: "#15803d", display: "flex", alignItems: "center", gap: 6 }}>
+                  ✅ Registrando como mercaderista adicional — las horas se sumarán
+                </div>
+              )}
 
               {/* Botón guardar */}
               <button onClick={handleSave} disabled={!canSave || saving} style={{
