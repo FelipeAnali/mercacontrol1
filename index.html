@@ -1202,25 +1202,38 @@ function DetailModal({ reg, onClose, onEdit, onDelete, isAdmin }) {
 }
 
 // ─── Edit Modal ───────────────────────────────────────────────────────────────
-function EditModal({ reg, empresas, onSave, onClose }) {
+function EditModal({ reg, empresas, sedes, onSave, onClose }) {
   if (!reg) return null;
   const [tipo, setTipo] = useState(reg.tipo || "entrada");
   const [proveedorId, setProveedorId] = useState(reg.proveedorId || "");
   const [busqueda, setBusqueda] = useState(reg.proveedor || "");
   const [showList, setShowList] = useState(false);
+  const [sedeId, setSedeId] = useState(reg.sedeId || "");
   const empActivas = empresas.filter(e => e.activa);
+  const sedesActivas = (sedes || []).filter(s => s.activa);
   const empFilt = empActivas.filter(e => e.nombre.toLowerCase().includes((busqueda || "").toLowerCase()));
   const empSel = empActivas.find(e => e.id === proveedorId);
+  const sedeSel = sedesActivas.find(s => s.id === sedeId);
 
   return (
     <div style={{ position: "fixed", inset: 0, background: "rgba(0,0,0,.65)", zIndex: 200, display: "flex", alignItems: "center", justifyContent: "center", padding: 20 }}
       onClick={e => e.target === e.currentTarget && onClose()}>
-      <div style={{ background: T.white, borderRadius: 18, padding: 24, width: "100%", maxWidth: 400, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 64px rgba(0,0,0,.3)" }}>
-        <h3 style={{ fontSize: 18, fontWeight: 800, color: T.navy, marginBottom: 20 }}>
+      <div style={{ background: T.white, borderRadius: 18, padding: 24, width: "100%", maxWidth: 440, maxHeight: "90vh", overflowY: "auto", boxShadow: "0 24px 64px rgba(0,0,0,.3)" }}>
+        <h3 style={{ fontSize: 18, fontWeight: 800, color: T.navy, marginBottom: 4 }}>
           ✏️ Editar Registro #{String(reg.consecutivo).padStart(4, "0")}
         </h3>
+        <p style={{ fontSize: 12, color: T.muted, marginBottom: 20 }}>Solo el administrador puede editar registros</p>
 
-        <p style={{ fontSize: 12, fontWeight: 700, color: T.slate, textTransform: "uppercase", marginBottom: 8 }}>Tipo:</p>
+        {/* Sede */}
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.slate, textTransform: "uppercase", marginBottom: 8 }}>📍 Sede:</p>
+        <select value={sedeId} onChange={e => setSedeId(e.target.value)}
+          style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: `2px solid ${sedeId ? T.navyMid : T.border}`, fontSize: 14, marginBottom: 20, background: T.white, color: sedeId ? T.navy : T.muted, fontFamily: "'Plus Jakarta Sans', sans-serif" }}>
+          <option value="">Seleccionar sede...</option>
+          {sedesActivas.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
+        </select>
+
+        {/* Tipo */}
+        <p style={{ fontSize: 12, fontWeight: 700, color: T.slate, textTransform: "uppercase", marginBottom: 8 }}>Tipo de movimiento:</p>
         <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 8, marginBottom: 20 }}>
           {[{ v: "entrada", l: "↑ ENTRADA" }, { v: "salida", l: "↓ SALIDA" }].map(o => (
             <button key={o.v} onClick={() => setTipo(o.v)} style={{
@@ -1232,11 +1245,13 @@ function EditModal({ reg, empresas, onSave, onClose }) {
           ))}
         </div>
 
+        {/* Proveedor */}
         <p style={{ fontSize: 12, fontWeight: 700, color: T.slate, textTransform: "uppercase", marginBottom: 8 }}>Proveedor:</p>
         <div style={{ position: "relative", marginBottom: 20 }}>
           <input value={busqueda} onChange={e => { setBusqueda(e.target.value); setProveedorId(""); setShowList(true); }}
             onFocus={() => setShowList(true)}
-            style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 14 }} />
+            placeholder="Buscar proveedor..."
+            style={{ width: "100%", padding: "10px 14px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 14, fontFamily: "'Plus Jakarta Sans', sans-serif" }} />
           {showList && (
             <div style={{ position: "absolute", top: "100%", left: 0, right: 0, background: T.white, border: `1px solid ${T.border}`, borderRadius: 10, maxHeight: 160, overflowY: "auto", zIndex: 10, boxShadow: "0 4px 16px rgba(0,0,0,.1)", marginTop: 4 }}>
               {empFilt.map(e => (
@@ -1246,12 +1261,20 @@ function EditModal({ reg, empresas, onSave, onClose }) {
               ))}
             </div>
           )}
+          {empSel && <div style={{ marginTop: 6, padding: "8px 12px", background: T.navyMid, borderRadius: 8, color: "#fff", fontSize: 13, fontWeight: 600 }}>✓ {empSel.nombre}</div>}
         </div>
 
         <div style={{ display: "flex", gap: 10 }}>
           <button onClick={onClose} style={{ flex: 1, padding: 12, borderRadius: 10, border: `1px solid ${T.border}`, background: T.white, cursor: "pointer", fontWeight: 600, fontSize: 14 }}>Cancelar</button>
-          <button onClick={() => onSave({ ...reg, tipo, proveedor: empSel?.nombre || reg.proveedor, proveedorId: proveedorId || reg.proveedorId })}
-            style={{ flex: 1, padding: 12, borderRadius: 10, border: "none", background: "#7dd105", color: "#05200b", cursor: "pointer", fontWeight: 800, fontSize: 14 }}>Guardar</button>
+          <button onClick={() => onSave({
+            ...reg,
+            tipo,
+            proveedor: empSel?.nombre || reg.proveedor,
+            proveedorId: proveedorId || reg.proveedorId,
+            sedeId: sedeId || reg.sedeId,
+            sedeName: sedeSel?.nombre || reg.sedeName,
+          })}
+            style={{ flex: 1, padding: 12, borderRadius: 10, border: "none", background: "#7dd105", color: "#05200b", cursor: "pointer", fontWeight: 800, fontSize: 14 }}>💾 Guardar</button>
         </div>
       </div>
     </div>
@@ -1325,7 +1348,7 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes, isComercial = fa
         // Horas acordadas acumuladas hasta hoy (o hasta el fin de semana si es semana pasada)
         const acordado     = calcAcordado(a, mon, sun);
         // Total acordado para toda la semana (independiente del día actual)
-        const acordadoTotal = DIAS.reduce((s, d) => s + (Number(a.horas?.[d]) || 0), 0);
+        const acordadoTotal = DIAS.reduce((s, d) => s + ((a.horas && Number(a.horas[d])) || 0), 0);
         const real         = calcReal(a.proveedorId, a.sedeId, mon, sun);
         const pct          = acordado > 0 ? Math.min(100, Math.round((real/acordado)*100)) : null;
         // Desglose por día
@@ -1333,7 +1356,7 @@ function CumplimientoView({ acuerdos, visitas, empresas, sedes, isComercial = fa
           const dayDate = new Date(mon); dayDate.setDate(mon.getDate() + i);
           const dayStart = new Date(dayDate); dayStart.setHours(0,0,0,0);
           const dayEnd   = new Date(dayDate); dayEnd.setHours(23,59,59,999);
-          const dayAcordado = Number(a.horas?.[d]) || 0;
+          const dayAcordado = (a.horas && Number(a.horas[d])) || 0;
           const isPast    = dayDate <= hoyBase;
           const isToday   = dayDate.toDateString() === hoyBase.toDateString();
           const isFuture  = dayDate > hoyBase;
@@ -2457,7 +2480,71 @@ function ViewAsBar({ viewAs, setViewAs }) {
 }
 
 // ─── Admin Dashboard ──────────────────────────────────────────────────────────
-function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, onNuevoRegistro, onLogout, onOpenPanel, isViewer = false, isComercial = false, onUpdateProveedors, acuerdos = [], onUpdateAcuerdos, viewAs = "admin", onSetViewAs, online, pendingCount, syncing, onSync, lastSyncAt }) {
+// ─── Auditoría View ───────────────────────────────────────────────────────────
+function AuditoriaView({ auditLog }) {
+  const log = auditLog || [];
+  const fmtTs = ts => {
+    const d = new Date(ts);
+    return d.toLocaleDateString("es-CO", { day:"2-digit", month:"short", year:"numeric" })
+      + " " + d.toLocaleTimeString("es-CO", { hour:"2-digit", minute:"2-digit" });
+  };
+  const colorAccion = a => a === "ELIMINÓ" ? { bg:"#fef2f2", color:"#dc2626", border:"#fca5a5" }
+    : a === "EDITÓ" ? { bg:"#fffbeb", color:"#b45309", border:"#fcd34d" }
+    : { bg:"#f0fdf4", color:"#15803d", border:"#86efac" };
+
+  return (
+    <div style={{ padding: 20, maxWidth: 760, margin: "0 auto" }}>
+      {/* Header */}
+      <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
+        <div style={{ fontSize:28 }}>🔒</div>
+        <div>
+          <div style={{ fontSize:18, fontWeight:800, color:T.navy }}>Registro de Auditoría</div>
+          <div style={{ fontSize:13, color:T.muted }}>Historial de acciones administrativas — {log.length} eventos registrados</div>
+        </div>
+      </div>
+
+      {/* Info banner */}
+      <div style={{ background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:10, padding:"10px 16px", marginBottom:20, fontSize:13, color:"#1d4ed8" }}>
+        ℹ️ Este registro es de solo lectura. Cuando SharePoint esté activo, quedará en el servidor y nadie podrá borrarlo.
+      </div>
+
+      {log.length === 0 ? (
+        <div style={{ textAlign:"center", padding:"60px 20px", color:T.muted }}>
+          <div style={{ fontSize:40, marginBottom:12 }}>📭</div>
+          <div style={{ fontSize:15, fontWeight:600 }}>Sin eventos registrados aún</div>
+          <div style={{ fontSize:13, marginTop:6 }}>Las ediciones y eliminaciones aparecerán aquí</div>
+        </div>
+      ) : (
+        <div style={{ display:"flex", flexDirection:"column", gap:10 }}>
+          {log.map(e => {
+            const c = colorAccion(e.accion);
+            return (
+              <div key={e.id} style={{ background:T.white, border:`1px solid ${T.border}`, borderRadius:12, padding:"14px 16px", display:"flex", gap:14, alignItems:"flex-start", boxShadow:"0 1px 3px rgba(0,0,0,.04)" }}>
+                {/* Badge acción */}
+                <div style={{ background:c.bg, border:`1px solid ${c.border}`, color:c.color, borderRadius:8, padding:"4px 10px", fontSize:11, fontWeight:800, whiteSpace:"nowrap", flexShrink:0 }}>
+                  {e.accion}
+                </div>
+                {/* Detalle */}
+                <div style={{ flex:1, minWidth:0 }}>
+                  <div style={{ fontSize:14, fontWeight:600, color:T.navy, marginBottom:4, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>
+                    {e.detalle}
+                  </div>
+                  <div style={{ fontSize:12, color:T.muted, display:"flex", gap:12, flexWrap:"wrap" }}>
+                    <span>👤 {e.usuario}</span>
+                    <span>📧 {e.email}</span>
+                    <span>🕐 {fmtTs(e.timestamp)}</span>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
+    </div>
+  );
+}
+
+function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, onNuevoRegistro, onLogout, onOpenPanel, isViewer = false, isComercial = false, onUpdateProveedors, acuerdos = [], onUpdateAcuerdos, viewAs = "admin", onSetViewAs, online, pendingCount, syncing, onSync, lastSyncAt, auditLog = [] }) {
   const [filterSede, setFilterSede] = useState("");
   const [filterProveedor, setFilterProveedor] = useState("");
   const [filterDateFrom, setFilterDateFrom] = useState("");
@@ -2966,6 +3053,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
                 ["visitas",     "🔄 Visitas",     filteredVisitasList.length],
                 ["acuerdos",    "🤝 Acuerdos",    acuerdos.length],
                 ["cumplimiento","📊 Cumplimiento", ""],
+                ...(!isViewer && !isComercial ? [["auditoria", "🔒 Auditoría", ""]] : []),
               ].map(([t, l, c]) => (
                 <button key={t} onClick={() => setActiveTab(t)} style={{
                   padding: "13px 20px", border: "none", background: "none", cursor: "pointer",
@@ -3202,6 +3290,11 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
               />
             )}
 
+            {/* ── AUDITORÍA TAB ── */}
+            {activeTab === "auditoria" && (
+              <AuditoriaView auditLog={auditLog} />
+            )}
+
           </div>
         </div>
       </div>
@@ -3235,7 +3328,7 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
           isAdmin={!isViewer} />
       )}
       {editReg && (
-        <EditModal reg={editReg} empresas={empresas}
+        <EditModal reg={editReg} empresas={empresas} sedes={sedes}
           onSave={async u => { await onEdit(u); setEditReg(null); }}
           onClose={() => setEditReg(null)} />
       )}
@@ -4051,6 +4144,8 @@ function App() {
   const [registros, setRegistros, regOk] = useSharedStorage("mreg-v1-registros", []);
   const [empresas, setProveedors, empOk] = useSharedStorage("mreg-v1-empresas", PROVEEDORS_INIT);
   const [sedes, setSedes, sedOk] = useSharedStorage("mreg-v1-sedes", SEDES_INIT);
+  // ── Audit Trail ──────────────────────────────────────────────────────────────
+  const [auditLog, setAuditLog, auditOk] = useSharedStorage("mreg-v1-audit", []);
   const SUPER_ADMINS = ["felipevanegas752@gmail.com", "aescobar@stcanaveral.com"];
   const [admins, setAdmins, admOk] = useSharedStorage("mreg-v1-admins", [
     { email: "aescobar@stcanaveral.com",     addedBy: "system", addedAt: 0 },
@@ -4147,16 +4242,38 @@ function App() {
     await setRegistros([...registros, newReg]);
   }, [registros, sedes, currentUser, setRegistros, online]);
 
+  // ── helper audit ──────────────────────────────────────────────────────────
+  const logAudit = useCallback(async (accion, detalle, regId) => {
+    const entrada = {
+      id: `aud-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
+      timestamp: Date.now(),
+      accion,        // "EDITÓ" | "ELIMINÓ" | "CREÓ"
+      usuario: currentUser?.nombre || "—",
+      email: currentUser?.email || "—",
+      regId: regId || null,
+      detalle,       // descripción legible del cambio
+    };
+    await setAuditLog(prev => [entrada, ...(prev || [])].slice(0, 500)); // máx 500 entradas
+  }, [currentUser, setAuditLog]);
+
   const handleEditRegistro = useCallback(async (updated) => {
+    const original = registros.find(r => r.id === updated.id);
+    const cambios = [];
+    if (original?.tipo !== updated.tipo) cambios.push(`Tipo: ${original?.tipo} → ${updated.tipo}`);
+    if (original?.proveedorId !== updated.proveedorId) cambios.push(`Proveedor: ${original?.proveedor} → ${updated.proveedor}`);
+    if (original?.sedeId !== updated.sedeId) cambios.push(`Sede: ${original?.sedeName} → ${updated.sedeName}`);
+    await logAudit("EDITÓ", `Reg #${String(updated.consecutivo).padStart(4,"0")} — ${cambios.join(" | ") || "sin cambios"}`, updated.id);
     await setRegistros(registros.map(r => r.id === updated.id ? updated : r));
-  }, [registros, setRegistros]);
+  }, [registros, setRegistros, logAudit]);
 
   const handleDeleteRegistro = useCallback(async (id) => {
+    const reg = registros.find(r => r.id === id);
+    await logAudit("ELIMINÓ", `Reg #${String(reg?.consecutivo || 0).padStart(4,"0")} — ${reg?.proveedor || "—"} — ${reg?.sedeName || "—"} — ${reg?.tipo || "—"}`, id);
     await setRegistros(registros.filter(r => r.id !== id));
-  }, [registros, setRegistros]);
+  }, [registros, setRegistros, logAudit]);
 
   // Loading
-  if (!regOk || !empOk || !sedOk || !admOk || !viewOk || !guardOk || !comOk || !acuOk) return (
+  if (!regOk || !empOk || !sedOk || !admOk || !viewOk || !guardOk || !comOk || !acuOk || !auditOk) return (
     <div style={{ minHeight: "100vh", background: "#05200b", display: "flex", alignItems: "center", justifyContent: "center" }}>
       <div style={{ textAlign: "center", color: "#fff" }}>
         <img src={LOGO_SRC} alt="Cañaveral" style={{ width: 80, height: 80, borderRadius: "50%", objectFit: "cover", marginBottom: 16, boxShadow: "0 4px 20px rgba(0,0,0,.3)" }} />
@@ -4199,7 +4316,7 @@ function App() {
       onUpdateProveedors={setProveedors} acuerdos={acuerdos} onUpdateAcuerdos={setAcuerdos}
       onLogout={() => { setCurrentUser(null); setView("login"); try { getMsal().logoutRedirect(); } catch(_) {} }}
       onOpenPanel={() => setView("admin-panel")} isViewer={viewAs === "viewer"} isComercial={viewAs === "comercial"}
-      viewAs={viewAs} onSetViewAs={setViewAs}
+      viewAs={viewAs} onSetViewAs={setViewAs} auditLog={auditLog}
       online={online} pendingCount={pendingCount} syncing={syncing} onSync={handleSync} lastSyncAt={lastSyncAt} />
   );
 
@@ -4208,7 +4325,7 @@ function App() {
       onEdit={handleEditRegistro} onDelete={handleDeleteRegistro} onNuevoRegistro={handleNuevoRegistro}
       onUpdateProveedors={setProveedors} acuerdos={acuerdos} onUpdateAcuerdos={setAcuerdos}
       onLogout={() => { setCurrentUser(null); setView("login"); try { getMsal().logoutRedirect(); } catch(_) {} }}
-      onOpenPanel={() => {}} isViewer={false} isComercial={true}
+      onOpenPanel={() => {}} isViewer={false} isComercial={true} auditLog={auditLog}
       online={online} pendingCount={pendingCount} syncing={syncing} onSync={handleSync} lastSyncAt={lastSyncAt} />
   );
 
@@ -4217,7 +4334,7 @@ function App() {
       onEdit={handleEditRegistro} onDelete={handleDeleteRegistro} onNuevoRegistro={handleNuevoRegistro}
       onUpdateProveedors={setProveedors} acuerdos={acuerdos} onUpdateAcuerdos={null}
       onLogout={() => { setCurrentUser(null); setView("login"); try { getMsal().logoutRedirect(); } catch(_) {} }}
-      onOpenPanel={() => {}} isViewer={true} isComercial={false}
+      onOpenPanel={() => {}} isViewer={true} isComercial={false} auditLog={auditLog}
       online={online} pendingCount={pendingCount} syncing={syncing} onSync={handleSync} lastSyncAt={lastSyncAt} />
   );
 
