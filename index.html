@@ -312,7 +312,7 @@
 
   <!-- App -->
   <script type="text/babel">
-const { useState, useEffect, useCallback, useMemo, useRef } = React;
+const { useState, useEffect, useCallback, useMemo, useRef, useTransition, useDeferredValue } = React;
 
 // ─── Azure AD / MSAL Config ───────────────────────────────────────────────────
 const MSAL_CLIENT_ID = "0652ef4a-cd47-4994-91ac-afbb86a8a2ba";
@@ -2768,6 +2768,9 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
   const [filterTipo, setFilterTipo] = useState("");
   const [filterStatus, setFilterStatus] = useState("");
   const [filterSearch, setFilterSearch] = useState("");
+  // ── Diferir el valor de búsqueda para no bloquear el teclado mientras filtra ──
+  const deferredSearch = useDeferredValue(filterSearch);
+  const isFilteringSearch = filterSearch !== deferredSearch;
 
   const [pageMovs,    setPageMovs]    = useState(1);
   const [pageVisitas, setPageVisitas] = useState(1);
@@ -2777,26 +2780,36 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
   const [showViewAsSheet, setShowViewAsSheet] = useState(false);
   const bp = useBreakpoint();
 
-  const sedesEnUso = sedes.filter(s => s.activa && registros.some(r => r.sedeId === s.id));
-  const empresasEnUso = empresas.filter(e => e.activa && registros.some(r => r.proveedorId === e.id));
+  // ── Sets para lookup O(1) en vez de .some() O(n) ──
+  const sedesConRegistros   = useMemo(() => new Set(registros.map(r => r.sedeId)),      [registros]);
+  const empConRegistros     = useMemo(() => new Set(registros.map(r => r.proveedorId)), [registros]);
+  const sedesEnUso   = useMemo(() => sedes.filter(s => s.activa && sedesConRegistros.has(s.id)),    [sedes, sedesConRegistros]);
+  const empresasEnUso = useMemo(() => empresas.filter(e => e.activa && empConRegistros.has(e.id)), [empresas, empConRegistros]);
 
   const filtered = useMemo(() => {
-    // Parse dates as LOCAL midnight to avoid UTC offset issues
     const fromTs = filterDateFrom
       ? (() => { const [y,m,d] = filterDateFrom.split("-"); return new Date(+y, +m-1, +d, 0,0,0,0).getTime(); })()
       : null;
     const toTs = filterDateTo
       ? (() => { const [y,m,d] = filterDateTo.split("-"); return new Date(+y, +m-1, +d, 23,59,59,999).getTime(); })()
       : null;
-    const q = filterSearch.toLowerCase().trim();
-    return registros
-      .filter(r => !filterSede    || r.sedeId    === filterSede)
-      .filter(r => !filterProveedor || r.proveedorId === filterProveedor)
-      .filter(r => !fromTs || r.timestamp >= fromTs)
-      .filter(r => !toTs   || r.timestamp <= toTs)
-      .filter(r => !q || (r.proveedor||"").toLowerCase().includes(q) || (r.sedeName||"").toLowerCase().includes(q) || (r.guardiaName||"").toLowerCase().includes(q))
-      .sort((a, b) => b.timestamp - a.timestamp);
-  }, [registros, filterSede, filterProveedor, filterDateFrom, filterDateTo, filterSearch]);
+    const q = deferredSearch.toLowerCase().trim();
+
+    // ── Una sola pasada sobre registros (antes eran 5 .filter() encadenados) ──
+    const result = [];
+    for (let i = 0; i < registros.length; i++) {
+      const r = registros[i];
+      if (filterSede     && r.sedeId     !== filterSede)     continue;
+      if (filterProveedor && r.proveedorId !== filterProveedor) continue;
+      if (fromTs && r.timestamp < fromTs) continue;
+      if (toTs   && r.timestamp > toTs)   continue;
+      if (q && !(r.proveedor||"").toLowerCase().includes(q)
+             && !(r.sedeName||"").toLowerCase().includes(q)
+             && !(r.guardiaName||"").toLowerCase().includes(q)) continue;
+      result.push(r);
+    }
+    return result.sort((a, b) => b.timestamp - a.timestamp);
+  }, [registros, filterSede, filterProveedor, filterDateFrom, filterDateTo, deferredSearch]);
 
   const filteredMovs = useMemo(() =>
     filtered.filter(r => !filterTipo || r.tipo === filterTipo),
@@ -2817,67 +2830,73 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
   // ── Algoritmo de visitas ──────────────────────────────────────────────────
   // Agrupa por sede + proveedor + día y empareja entradas con salidas
   const visitas = useMemo(() => {
-    const source = filtered;
-    // Agrupar por clave: sedeId|proveedorId|fecha
     const grupos = {};
-    source.forEach(r => {
-      const dia = new Date(r.timestamp).toDateString();
+
+    // ── Pasada única — cachear toDateString para no crear Date por cada registro ──
+    for (let i = 0; i < filtered.length; i++) {
+      const r = filtered[i];
+      // Reusar string de fecha cacheada en el registro si existe, si no calcular
+      const dia = r._dia || (r._dia = new Date(r.timestamp).toDateString());
       const key = `${r.sedeId}|${r.proveedorId}|${dia}`;
-      if (!grupos[key]) grupos[key] = { entradas: [], salidas: [], meta: r };
+      if (!grupos[key]) grupos[key] = { entradas: [], salidas: [] };
       if (r.tipo === "entrada") grupos[key].entradas.push(r);
       else grupos[key].salidas.push(r);
-    });
+    }
 
     const resultado = [];
-    Object.entries(grupos).forEach(([key, g]) => {
-      const entradas = [...g.entradas].sort((a, b) => a.timestamp - b.timestamp);
-      const salidas  = [...g.salidas].sort((a, b) => a.timestamp - b.timestamp);
+    const keys = Object.keys(grupos);
+    for (let gi = 0; gi < keys.length; gi++) {
+      const g = grupos[keys[gi]];
+      // Ordenar por timestamp — más eficiente con comparación directa
+      g.entradas.sort((a, b) => a.timestamp - b.timestamp);
+      g.salidas.sort((a, b) => a.timestamp - b.timestamp);
       const usedSalidas = new Set();
 
-      // Emparejar cada entrada con la primer salida posterior
-      entradas.forEach(entrada => {
-        const salidaMatch = salidas.find(s => !usedSalidas.has(s.id) && s.timestamp > entrada.timestamp);
+      for (let ei = 0; ei < g.entradas.length; ei++) {
+        const entrada = g.entradas[ei];
+        // Búsqueda lineal — salidas ya están ordenadas, tomamos la primera posterior
+        let salidaMatch = null;
+        for (let si = 0; si < g.salidas.length; si++) {
+          const s = g.salidas[si];
+          if (!usedSalidas.has(s.id) && s.timestamp > entrada.timestamp) {
+            salidaMatch = s;
+            break; // ya está ordenado, la primera válida es la más cercana
+          }
+        }
         if (salidaMatch) {
           usedSalidas.add(salidaMatch.id);
-          const durMs = salidaMatch.timestamp - entrada.timestamp;
-          const durMin = Math.round(durMs / 60000);
           resultado.push({
             visitId: `v-${entrada.id}`,
             proveedor: entrada.proveedor, proveedorId: entrada.proveedorId,
             sedeId: entrada.sedeId, sedeName: entrada.sedeName,
-            fecha: entrada.timestamp,
-            entrada, salida: salidaMatch,
+            fecha: entrada.timestamp, entrada, salida: salidaMatch,
             status: "completo",
-            duracionMin: durMin,
+            duracionMin: Math.round((salidaMatch.timestamp - entrada.timestamp) / 60000),
           });
         } else {
-          // Entrada sin salida = sigue adentro
           resultado.push({
             visitId: `v-${entrada.id}`,
             proveedor: entrada.proveedor, proveedorId: entrada.proveedorId,
             sedeId: entrada.sedeId, sedeName: entrada.sedeName,
-            fecha: entrada.timestamp,
-            entrada, salida: null,
-            status: "adentro",
-            duracionMin: null,
+            fecha: entrada.timestamp, entrada, salida: null,
+            status: "adentro", duracionMin: null,
           });
         }
-      });
-
+      }
       // Salidas sin entrada emparejada
-      salidas.filter(s => !usedSalidas.has(s.id)).forEach(salida => {
-        resultado.push({
-          visitId: `v-out-${salida.id}`,
-          proveedor: salida.proveedor, proveedorId: salida.proveedorId,
-          sedeId: salida.sedeId, sedeName: salida.sedeName,
-          fecha: salida.timestamp,
-          entrada: null, salida,
-          status: "solo_salida",
-          duracionMin: null,
-        });
-      });
-    });
-
+      for (let si = 0; si < g.salidas.length; si++) {
+        const salida = g.salidas[si];
+        if (!usedSalidas.has(salida.id)) {
+          resultado.push({
+            visitId: `v-out-${salida.id}`,
+            proveedor: salida.proveedor, proveedorId: salida.proveedorId,
+            sedeId: salida.sedeId, sedeName: salida.sedeName,
+            fecha: salida.timestamp, entrada: null, salida,
+            status: "solo_salida", duracionMin: null,
+          });
+        }
+      }
+    }
     return resultado.sort((a, b) => b.fecha - a.fecha);
   }, [filtered]);
 
@@ -3138,13 +3157,15 @@ function AdminDashboard({ user, registros, sedes, empresas, onEdit, onDelete, on
 
             <p style={{ fontSize: 11, fontWeight: 700, color: T.muted, textTransform: "uppercase", letterSpacing: 1, marginBottom: 8 }}>Búsqueda de texto</p>
             <div style={{ position:"relative", marginBottom:16 }}>
-              <span style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", fontSize:14, color:T.muted, pointerEvents:"none" }}>🔍</span>
+              <span style={{ position:"absolute", left:10, top:"50%", transform:"translateY(-50%)", fontSize:14, color:T.muted, pointerEvents:"none" }}>
+                {isFilteringSearch ? "⏳" : "🔍"}
+              </span>
               <input
                 type="text"
                 value={filterSearch}
                 onChange={e => setFilterSearch(e.target.value)}
                 placeholder="Proveedor, sede, guardia..."
-                style={{ width:"100%", padding:"10px 12px 10px 32px", borderRadius:8, border:`1px solid ${filterSearch ? T.brand : T.border}`, fontSize:13, background:filterSearch ? "#fffbeb" : T.white, boxSizing:"border-box" }}
+                style={{ width:"100%", padding:"10px 12px 10px 32px", borderRadius:8, border:`1px solid ${filterSearch ? T.brand : T.border}`, fontSize:13, background:filterSearch ? "#fffbeb" : T.white, boxSizing:"border-box", opacity: isFilteringSearch ? .7 : 1, transition:"opacity .2s" }}
               />
               {filterSearch && (
                 <button onClick={() => setFilterSearch("")} style={{ position:"absolute", right:8, top:"50%", transform:"translateY(-50%)", background:"none", border:"none", cursor:"pointer", fontSize:14, color:T.muted }}>✕</button>
