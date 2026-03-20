@@ -619,6 +619,68 @@ function useOnlineStatus() {
   return online;
 }
 
+// ─── Toast / Notificaciones ───────────────────────────────────────────────────
+// Hook global para mostrar mensajes al usuario
+const ToastContext = React.createContext(null);
+
+function ToastProvider({ children }) {
+  const [toasts, setToasts] = useState([]);
+
+  const showToast = useCallback((msg, type = "info", duration = 3500) => {
+    const id = `t-${Date.now()}-${Math.random().toString(36).slice(2,4)}`;
+    setToasts(prev => [...prev, { id, msg, type }]);
+    setTimeout(() => setToasts(prev => prev.filter(t => t.id !== id)), duration);
+  }, []);
+
+  const removeToast = useCallback((id) => {
+    setToasts(prev => prev.filter(t => t.id !== id));
+  }, []);
+
+  const colors = {
+    success: { bg:"#f0fdf4", border:"#86efac", color:"#15803d", icon:"✅" },
+    error:   { bg:"#fef2f2", border:"#fca5a5", color:"#dc2626", icon:"❌" },
+    warning: { bg:"#fffbeb", border:"#fcd34d", color:"#b45309", icon:"⚠️" },
+    info:    { bg:"#eff6ff", border:"#bfdbfe", color:"#1d4ed8", icon:"ℹ️" },
+  };
+
+  return (
+    <ToastContext.Provider value={showToast}>
+      {children}
+      {/* Contenedor de toasts — esquina inferior derecha */}
+      <div style={{
+        position:"fixed", bottom:80, right:16, zIndex:9999,
+        display:"flex", flexDirection:"column", gap:8, maxWidth:340,
+        pointerEvents:"none"
+      }}>
+        {toasts.map(t => {
+          const c = colors[t.type] || colors.info;
+          return (
+            <div key={t.id} style={{
+              background:c.bg, border:`1px solid ${c.border}`, color:c.color,
+              borderRadius:12, padding:"12px 16px",
+              display:"flex", alignItems:"flex-start", gap:10,
+              boxShadow:"0 4px 20px rgba(0,0,0,.12)",
+              animation:"fadeIn .2s ease-out",
+              pointerEvents:"all"
+            }}>
+              <span style={{ fontSize:16, flexShrink:0 }}>{c.icon}</span>
+              <span style={{ fontSize:13, fontWeight:600, flex:1, lineHeight:1.4 }}>{t.msg}</span>
+              <button onClick={() => removeToast(t.id)} style={{
+                background:"none", border:"none", cursor:"pointer",
+                color:c.color, fontSize:16, padding:0, flexShrink:0, opacity:.6
+              }}>×</button>
+            </div>
+          );
+        })}
+      </div>
+    </ToastContext.Provider>
+  );
+}
+
+function useToast() {
+  return React.useContext(ToastContext) || (() => {});
+}
+
 // ─── Offline Banner Component ─────────────────────────────────────────────────
 function OfflineBanner({ online, pending, onSync, syncing }) {
   if (online && pending === 0) return null;
@@ -4283,7 +4345,8 @@ function AdminPanel({ user, sedes, empresas, admins, viewers, guardias, comercia
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [view, setView] = useState("login");
-  const [viewAs, setViewAs] = useState("admin"); // admin "Ver como" mode
+  const [viewAs, setViewAs] = useState("admin");
+  const showToast = useToast();
 
   const [registros, setRegistros, regOk] = useSharedStorage("mreg-v1-registros", []);
   const [empresas, setProveedors, empOk] = useSharedStorage("mreg-v1-empresas", PROVEEDORS_INIT);
@@ -4324,18 +4387,18 @@ function App() {
   const handleSync = useCallback(async () => {
     setSyncing(true);
     try {
-      // Mark all pending as synced
-      // In production: here you call your API/SharePoint to push each pending record
       const synced = registros.map(r =>
         r.pendingSync ? { ...r, pendingSync: false, syncedAt: Date.now() } : r
       );
       await setRegistros(synced);
       setLastSyncAt(Date.now());
+      showToast("Registros sincronizados correctamente", "success");
     } catch (e) {
       console.error("Sync error:", e);
+      showToast("Error al sincronizar. Intenta de nuevo.", "error");
     }
     setSyncing(false);
-  }, [registros, setRegistros]);
+  }, [registros, setRegistros, showToast]);
 
   // Real-time polling every 5s — lee de localStorage directamente
   useEffect(() => {
@@ -4367,75 +4430,86 @@ function App() {
   const handleNuevoRegistro = useCallback(async (data) => {
     const resolvedSedeId = data.sedeIdOverride || currentUser.sedeId;
     const sede = sedes.find(s => s.id === resolvedSedeId);
-    // Actualización funcional — siempre usa el estado más reciente, nunca el closure viejo
-    await setRegistros(prev => {
-      const maxConsec = prev.length > 0 ? Math.max(...prev.map(r => r.consecutivo || 0)) : 0;
-      const newReg = {
-        id: `reg-${Date.now()}`,
-        consecutivo: maxConsec + 1,
-        proveedor: data.proveedor,
-        proveedorId: data.proveedorId,
-        tipo: data.tipo,
-        sedeId: resolvedSedeId,
-        sedeName: sede?.nombre || "—",
-        guardiaName: currentUser.nombre,
-        guardiaId: currentUser.id,
-        gps: data.gps || null,
-        timestamp: Date.now(),
-        pendingSync: !online,
-        syncedAt: online ? Date.now() : null,
-      };
-      return [...prev, newReg];
-    });
-  }, [sedes, currentUser, setRegistros, online]);
+    try {
+      await setRegistros(prev => {
+        const maxConsec = prev.length > 0 ? Math.max(...prev.map(r => r.consecutivo || 0)) : 0;
+        const newReg = {
+          id: `reg-${Date.now()}`,
+          consecutivo: maxConsec + 1,
+          proveedor: data.proveedor,
+          proveedorId: data.proveedorId,
+          tipo: data.tipo,
+          sedeId: resolvedSedeId,
+          sedeName: sede?.nombre || "—",
+          guardiaName: currentUser.nombre,
+          guardiaId: currentUser.id,
+          gps: data.gps || null,
+          timestamp: Date.now(),
+          pendingSync: !online,
+          syncedAt: online ? Date.now() : null,
+        };
+        return [...prev, newReg];
+      });
+      if (!online) {
+        showToast("Registro guardado localmente — se sincronizará cuando vuelva la conexión", "warning", 4000);
+      } else {
+        showToast(`${data.tipo === "entrada" ? "↑ Entrada" : "↓ Salida"} de ${data.proveedor} registrada correctamente`, "success");
+      }
+    } catch (e) {
+      showToast("❌ Error al guardar el registro. Intenta de nuevo.", "error", 5000);
+    }
+  }, [sedes, currentUser, setRegistros, online, showToast]);
 
   // ── helper audit ──────────────────────────────────────────────────────────
   const logAudit = useCallback(async (accion, detalle, regId) => {
     const entrada = {
       id: `aud-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
       timestamp: Date.now(),
-      accion,           // "EDITÓ" | "ELIMINÓ" | "CREÓ"
+      accion,
       usuario: currentUser?.nombre || "—",
       email: currentUser?.email || "—",
       regId: regId || null,
-      detalle,          // descripción legible del cambio
-      syncedToSP: false, // ← se pone true cuando SharePoint confirme
+      detalle,
+      syncedToSP: false,
     };
-
-    // 1. Siempre guarda local primero (funciona sin SharePoint)
     await setAuditLog(prev => [entrada, ...(prev || [])].slice(0, 500));
-
-    // 2. Si SharePoint está habilitado, intenta escribir allá también
-    //    Cuando SHAREPOINT_ENABLED = true esto se activa automáticamente
     if (SHAREPOINT_ENABLED) {
       try {
         await spWrite("mreg-v1-audit", entrada);
-        // Marca la entrada como sincronizada en local
         await setAuditLog(prev => prev.map(e =>
           e.id === entrada.id ? { ...e, syncedToSP: true } : e
         ));
       } catch (err) {
         console.warn("Audit SharePoint sync failed:", err.message);
-        // No falla silenciosamente — la entrada local sigue existiendo
       }
     }
   }, [currentUser, setAuditLog]);
 
   const handleEditRegistro = useCallback(async (updated) => {
-    const original = registros.find(r => r.id === updated.id);
-    const cambios = [];
-    if (original?.tipo !== updated.tipo) cambios.push(`Tipo: ${original?.tipo} → ${updated.tipo}`);
-    if (original?.proveedorId !== updated.proveedorId) cambios.push(`Proveedor: ${original?.proveedor} → ${updated.proveedor}`);
-    if (original?.sedeId !== updated.sedeId) cambios.push(`Sede: ${original?.sedeName} → ${updated.sedeName}`);
-    await logAudit("EDITÓ", `Reg #${String(updated.consecutivo).padStart(4,"0")} — ${cambios.join(" | ") || "sin cambios"}`, updated.id);
-    await setRegistros(registros.map(r => r.id === updated.id ? updated : r));
-  }, [registros, setRegistros, logAudit]);
+    try {
+      const original = registros.find(r => r.id === updated.id);
+      const cambios = [];
+      if (original?.tipo !== updated.tipo) cambios.push(`Tipo: ${original?.tipo} → ${updated.tipo}`);
+      if (original?.proveedorId !== updated.proveedorId) cambios.push(`Proveedor: ${original?.proveedor} → ${updated.proveedor}`);
+      if (original?.sedeId !== updated.sedeId) cambios.push(`Sede: ${original?.sedeName} → ${updated.sedeName}`);
+      await logAudit("EDITÓ", `Reg #${String(updated.consecutivo).padStart(4,"0")} — ${cambios.join(" | ") || "sin cambios"}`, updated.id);
+      await setRegistros(registros.map(r => r.id === updated.id ? updated : r));
+      showToast(`Registro #${String(updated.consecutivo).padStart(4,"0")} actualizado correctamente`, "success");
+    } catch (e) {
+      showToast("❌ Error al editar el registro. Intenta de nuevo.", "error", 5000);
+    }
+  }, [registros, setRegistros, logAudit, showToast]);
 
   const handleDeleteRegistro = useCallback(async (id) => {
-    const reg = registros.find(r => r.id === id);
-    await logAudit("ELIMINÓ", `Reg #${String(reg?.consecutivo || 0).padStart(4,"0")} — ${reg?.proveedor || "—"} — ${reg?.sedeName || "—"} — ${reg?.tipo || "—"}`, id);
-    await setRegistros(registros.filter(r => r.id !== id));
-  }, [registros, setRegistros, logAudit]);
+    try {
+      const reg = registros.find(r => r.id === id);
+      await logAudit("ELIMINÓ", `Reg #${String(reg?.consecutivo || 0).padStart(4,"0")} — ${reg?.proveedor || "—"} — ${reg?.sedeName || "—"} — ${reg?.tipo || "—"}`, id);
+      await setRegistros(registros.filter(r => r.id !== id));
+      showToast(`Registro #${String(reg?.consecutivo || 0).padStart(4,"0")} eliminado`, "warning");
+    } catch (e) {
+      showToast("❌ Error al eliminar el registro. Intenta de nuevo.", "error", 5000);
+    }
+  }, [registros, setRegistros, logAudit, showToast]);
 
   // Loading
   if (!regOk || !empOk || !sedOk || !admOk || !viewOk || !guardOk || !comOk || !acuOk || !auditOk) return (
@@ -4513,7 +4587,7 @@ function App() {
 
 // ─── Mount ────────────────────────────────────────────────────────────────────
 const _root = ReactDOM.createRoot(document.getElementById("root"));
-_root.render(React.createElement(App));
+_root.render(React.createElement(ToastProvider, null, React.createElement(App)));
 
 </script>
 </body>
