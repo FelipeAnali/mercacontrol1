@@ -3884,464 +3884,297 @@ function AdminPanel({ user, sedes, empresas, admins, viewers, guardias, comercia
   };
 
   return (
-    <div style={{ height: "100vh", overflowY: "auto", overflowX: "hidden", background: T.bg, WebkitOverflowScrolling: "touch" }}>
-      <div style={{ background: T.navy, padding: "10px 14px", display: "flex", justifyContent: "space-between", alignItems: "center", position: "sticky", top: 0, zIndex: 10 }}>
-        <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-          <img src={LOGO_SRC} alt="Cañaveral" style={{ height: 28, width: 28, borderRadius: "50%", objectFit: "cover", border: "2px solid rgba(255,255,255,.2)" }} />
-          <div style={{ color: "#fff", fontSize: 20, fontWeight: 800 }}>⚙️ Panel de Administración</div>
+    <div style={{ height:"100vh", overflowY:"auto", overflowX:"hidden", background:"#f8fafc", WebkitOverflowScrolling:"touch" }}>
+
+      {/* Header */}
+      <div style={{ background:`linear-gradient(135deg, ${T.navy} 0%, #1C5A2A 100%)`, padding:"14px 20px", display:"flex", justifyContent:"space-between", alignItems:"center", position:"sticky", top:0, zIndex:10, boxShadow:"0 2px 12px rgba(0,0,0,.25)" }}>
+        <div style={{ display:"flex", alignItems:"center", gap:12 }}>
+          <img src={LOGO_SRC} alt="Cañaveral" style={{ height:34, width:34, borderRadius:"50%", objectFit:"cover", border:"2px solid rgba(125,209,5,.5)" }} />
+          <div>
+            <div style={{ color:"#fff", fontSize:15, fontWeight:800 }}>Panel de Administración</div>
+            <div style={{ color:"rgba(255,255,255,.5)", fontSize:11 }}>Supertiendas Cañaveral · {user?.email}</div>
+          </div>
         </div>
-        <button onClick={onClose} style={{ background: "rgba(255,255,255,.1)", border: "none", color: "#fff", padding: "10px 18px", borderRadius: 10, cursor: "pointer", fontWeight: 700 }}>← Volver</button>
+        <button onClick={onClose} style={{ background:"rgba(255,255,255,.1)", border:"1px solid rgba(255,255,255,.15)", color:"#fff", padding:"8px 16px", borderRadius:10, cursor:"pointer", fontWeight:700, fontSize:13 }}>
+          ← Volver
+        </button>
       </div>
 
-      {/* Tabs — scroll horizontal, sticky */}
-      <div style={{ background: T.white, borderBottom: `1px solid ${T.border}`, display: "flex", padding: "0 4px", overflowX: "auto", position: "sticky", top: 57, zIndex: 9, WebkitOverflowScrolling: "touch", scrollbarWidth: "none" }}>
-        {[["empresas", "🏭 Proveedores", empresas.filter(e => e.activa).length],
-          ["sedes", "📍 Sedes", sedes.filter(s => s.activa).length],
-          ["guardias", "🛡️ Guardias", guardias.length],
-          ["comercials", "🏭 Comerciales", comercials.length],
-          ["admins", "👑 Admins", admins.length],
-          ["viewers", "👁️ Espectadores", viewers.length],
-          ["auditoria", "🔒 Auditoría", auditLog.length]].map(([t, l, c]) => (
+      {/* Tabs */}
+      <div style={{ background:"#fff", borderBottom:"1px solid #e2e8f0", display:"flex", padding:"0 8px", overflowX:"auto", position:"sticky", top:62, zIndex:9, WebkitOverflowScrolling:"touch", scrollbarWidth:"none" }}>
+        {[
+          ["empresas",  "🏭", "Proveedores",  empresas.filter(e=>e.activa).length,  "#7dd105"],
+          ["sedes",     "📍", "Sedes",         sedes.filter(s=>s.activa).length,     "#0ea5e9"],
+          ["guardias",  "🛡️", "Guardias",      guardias.length,                      "#f59e0b"],
+          ["comercials","🏭", "Comerciales",   comercials.length,                    "#8b5cf6"],
+          ["admins",    "👑", "Admins",        admins.length,                        "#ef4444"],
+          ["viewers",   "👁️", "Espectadores",  viewers.length,                       "#6366f1"],
+          ["auditoria", "🔒", "Auditoría",     auditLog.length,                      "#64748b"],
+        ].map(([t, icon, label, count, color]) => (
           <button key={t} onClick={() => setTab(t)} style={{
-            padding: "12px 14px", border: "none", background: "none", cursor: "pointer", whiteSpace: "nowrap",
-            fontWeight: tab === t ? 800 : 500, fontSize: 13,
-            color: tab === t ? T.navy : T.slate,
-            borderBottom: `3px solid ${tab === t ? T.brand : "transparent"}`,
-            display: "flex", alignItems: "center", gap: 4, flexShrink: 0
+            padding:"12px 14px", border:"none", background:"none", cursor:"pointer",
+            whiteSpace:"nowrap", flexShrink:0, display:"flex", alignItems:"center", gap:6,
+            fontWeight: tab===t ? 800 : 500, fontSize:13,
+            color: tab===t ? color : "#64748b",
+            borderBottom: `3px solid ${tab===t ? color : "transparent"}`,
           }}>
-            {l}
-            <span style={{ background: tab === t ? T.amberLight : T.bg, color: tab === t ? "#92400e" : T.slate, borderRadius: 99, padding: "1px 6px", fontSize: 10, fontWeight: 700 }}>{c}</span>
+            <span>{icon}</span><span>{label}</span>
+            {count > 0 && <span style={{ background:tab===t?color:"#f1f5f9", color:tab===t?"#fff":"#64748b", borderRadius:99, padding:"1px 7px", fontSize:10, fontWeight:800 }}>{count}</span>}
           </button>
         ))}
       </div>
 
-      <div style={{ padding: "16px 16px 40px", maxWidth: 640, margin: "0 auto" }}>
+      <div style={{ padding:"20px 16px 60px", maxWidth:660, margin:"0 auto" }}>
 
-        {/* ── Confirm modal ── */}
+        {/* Confirm modal */}
         {confirmBulk && (
           <div style={{ position:"fixed", inset:0, background:"rgba(0,0,0,.6)", zIndex:999, display:"flex", alignItems:"center", justifyContent:"center", padding:20 }}>
-            <div style={{ background:"#fff", borderRadius:16, padding:28, maxWidth:380, width:"100%", boxShadow:"0 24px 64px rgba(0,0,0,.3)" }}>
-              <div style={{ fontSize:36, textAlign:"center", marginBottom:12 }}>⚠️</div>
-              <div style={{ fontSize:16, fontWeight:800, color:T.navy, textAlign:"center", marginBottom:8 }}>
-                ¿Eliminar {confirmBulk.count} {confirmBulk.tipo}{confirmBulk.count!==1?"s":""}?
-              </div>
-              <div style={{ fontSize:13, color:T.muted, textAlign:"center", marginBottom:24, lineHeight:1.5 }}>
-                Esta acción <strong>no se puede deshacer</strong>. Los registros asociados no se eliminarán.
-              </div>
+            <div style={{ background:"#fff", borderRadius:20, padding:28, maxWidth:380, width:"100%", textAlign:"center", boxShadow:"0 24px 64px rgba(0,0,0,.3)" }}>
+              <div style={{ fontSize:40, marginBottom:12 }}>⚠️</div>
+              <div style={{ fontSize:17, fontWeight:800, color:T.navy, marginBottom:8 }}>¿Eliminar {confirmBulk.count} {confirmBulk.tipo}{confirmBulk.count!==1?"s":""}?</div>
+              <div style={{ fontSize:13, color:T.muted, marginBottom:24, lineHeight:1.6 }}>Esta acción <strong>no se puede deshacer</strong>.</div>
               <div style={{ display:"flex", gap:10 }}>
-                <button onClick={() => setConfirmBulk(null)}
-                  style={{ flex:1, padding:"12px", borderRadius:10, border:`1px solid ${T.border}`, background:T.white, fontSize:14, fontWeight:700, cursor:"pointer" }}>
-                  Cancelar
-                </button>
-                <button onClick={() => {
-                  if (confirmBulk.tipo === "proveedor") {
-                    onUpdateProveedors(empresas.filter(e => !confirmBulk.ids.includes(e.id)));
-                    setSelEmps(new Set());
-                  } else if (confirmBulk.tipo === "sede") {
-                    onUpdateSedes(sedes.filter(s => !confirmBulk.ids.includes(s.id)));
-                    setSelSedes(new Set());
-                  }
+                <button onClick={()=>setConfirmBulk(null)} style={{ flex:1, padding:"12px", borderRadius:12, border:"1px solid #e2e8f0", background:"#fff", fontSize:14, fontWeight:700, cursor:"pointer" }}>Cancelar</button>
+                <button onClick={()=>{
+                  if(confirmBulk.tipo==="proveedor"){onUpdateProveedors(empresas.filter(e=>!confirmBulk.ids.includes(e.id)));setSelEmps(new Set());}
+                  else if(confirmBulk.tipo==="sede"){onUpdateSedes(sedes.filter(s=>!confirmBulk.ids.includes(s.id)));setSelSedes(new Set());}
                   setConfirmBulk(null);
-                }}
-                  style={{ flex:1, padding:"12px", borderRadius:10, border:"none", background:"#dc2626", color:"#fff", fontSize:14, fontWeight:800, cursor:"pointer" }}>
-                  🗑️ Eliminar
-                </button>
+                }} style={{ flex:1, padding:"12px", borderRadius:12, border:"none", background:"#dc2626", color:"#fff", fontSize:14, fontWeight:800, cursor:"pointer" }}>🗑️ Eliminar</button>
               </div>
             </div>
           </div>
         )}
 
-        {/* PROVEEDORS */}
-        {tab === "empresas" && (
-          <div>
-            <BulkBar
-              sel={selEmps} lista={empresas} tipo="proveedor"
-              onToggleActiva={(items, activa) => onUpdateProveedors(empresas.map(e => selEmps.has(e.id) ? {...e, activa} : e))}
-              onClear={() => setSelEmps(new Set())}
-            />
-            <div style={{ background: T.white, borderRadius: 14, padding: 18, marginBottom: 16, border: `1px solid ${T.border}` }}>
-              <h4 style={{ fontSize: 14, fontWeight: 800, color: T.navy, marginBottom: 12 }}>Agregar proveedor</h4>
-              <div style={{ display: "flex", gap: 10 }}>
-                <input value={newEmp} onChange={e => setNewEmp(e.target.value)}
-                  placeholder="Nombre del proveedor..."
-                  onKeyDown={e => { if (e.key === "Enter" && newEmp.trim()) { onUpdateProveedors([...empresas, { id: `e${Date.now()}`, nombre: newEmp.trim(), activa: true }]); setNewEmp(""); } }}
-                  style={{ flex: 1, padding: "11px 14px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 14 }} />
-                <button onClick={() => { if (newEmp.trim()) { onUpdateProveedors([...empresas, { id: `e${Date.now()}`, nombre: newEmp.trim(), activa: true }]); setNewEmp(""); } }}
-                  style={{ padding: "11px 18px", borderRadius: 8, border: "none", background: "#7dd105", color: "#05200b", cursor: "pointer", fontWeight: 800 }}>+ Agregar</button>
+        {/* helper para renderizar lista con barra de color */}
+        {tab==="empresas" && (() => {
+          const lista = empFilt;
+          return (
+            <div>
+              <BulkBar sel={selEmps} lista={empresas} tipo="proveedor"
+                onToggleActiva={(_,activa)=>onUpdateProveedors(empresas.map(e=>selEmps.has(e.id)?{...e,activa}:e))}
+                onClear={()=>setSelEmps(new Set())} />
+              <div style={{ display:"flex", gap:10, marginBottom:16 }}>
+                {[["Activos",empresas.filter(e=>e.activa).length,"#dcfce7","#15803d"],["Inactivos",empresas.filter(e=>!e.activa).length,"#fee2e2","#b91c1c"],["Total",empresas.length,"#f1f5f9","#475569"]].map(([l,v,bg,c])=>(
+                  <div key={l} style={{ flex:1, background:bg, borderRadius:12, padding:"10px 14px", textAlign:"center" }}>
+                    <div style={{ fontSize:20, fontWeight:800, color:c }}>{v}</div>
+                    <div style={{ fontSize:11, color:c, opacity:.8 }}>{l}</div>
+                  </div>
+                ))}
               </div>
-              {/* Importar CSV */}
-              <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${T.border}` }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: T.slate, marginBottom: 8 }}>📥 Importar desde archivo</div>
-                <div style={{ fontSize: 12, color: T.muted, marginBottom: 10 }}>
-                  Sube un archivo <strong>.txt o .csv</strong> con <strong>un nombre por línea</strong>. Se agregarán todas las que no existan ya.
+              <div style={{ background:"#fff", borderRadius:16, padding:16, marginBottom:16, border:"1px solid #e2e8f0" }}>
+                <div style={{ fontSize:13, fontWeight:700, color:T.navy, marginBottom:10 }}>➕ Agregar proveedor</div>
+                <div style={{ display:"flex", gap:8, marginBottom:10 }}>
+                  <input value={newEmp} onChange={e=>setNewEmp(e.target.value)} placeholder="Nombre del proveedor..."
+                    onKeyDown={e=>{ if(e.key==="Enter"&&newEmp.trim()){onUpdateProveedors([...empresas,{id:`e${Date.now()}`,nombre:newEmp.trim(),activa:true}]);setNewEmp("");}}}
+                    style={{ flex:1, padding:"10px 14px", borderRadius:10, border:"1.5px solid #e2e8f0", fontSize:14, outline:"none", fontFamily:"inherit" }} />
+                  <button onClick={()=>{if(newEmp.trim()){onUpdateProveedors([...empresas,{id:`e${Date.now()}`,nombre:newEmp.trim(),activa:true}]);setNewEmp("");}}}
+                    style={{ padding:"10px 18px", borderRadius:10, border:"none", background:"#7dd105", color:"#05200b", cursor:"pointer", fontWeight:800 }}>+ Agregar</button>
                 </div>
-                <label style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 8, background: "#f0fdf4", border: `1.5px dashed #7dd105`, cursor: "pointer", fontSize: 13, fontWeight: 700, color: "#3a6200" }}>
-                  📂 Seleccionar archivo
-                  <input type="file" accept=".csv,.txt" style={{ display: "none" }} onChange={e => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = ev => {
-                      const lines = ev.target.result.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-                      const existentes = new Set(empresas.map(x => x.nombre.toLowerCase()));
-                      const nuevas = lines.filter(l => !existentes.has(l.toLowerCase())).map(nombre => ({ id: `e${Date.now()}-${Math.random().toString(36).slice(2)}`, nombre, activa: true }));
-                      if (nuevas.length > 0) onUpdateProveedors([...empresas, ...nuevas]);
-                      alert(`✅ ${nuevas.length} proveedor(es) importados. ${lines.length - nuevas.length} omitidas (ya existían).`);
-                      e.target.value = "";
-                    };
-                    reader.readAsText(file);
+                <label style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"7px 12px", borderRadius:8, background:"#f0fdf4", border:"1.5px dashed #7dd105", cursor:"pointer", fontSize:12, fontWeight:700, color:"#3a6200" }}>
+                  📂 Importar .csv / .txt
+                  <input type="file" accept=".csv,.txt" style={{ display:"none" }} onChange={e=>{
+                    const file=e.target.files[0];if(!file)return;
+                    const r=new FileReader();r.onload=ev=>{
+                      const lines=ev.target.result.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
+                      const ex=new Set(empresas.map(x=>x.nombre.toLowerCase()));
+                      const nuevas=lines.filter(l=>!ex.has(l.toLowerCase())).map(nombre=>({id:`e${Date.now()}-${Math.random().toString(36).slice(2)}`,nombre,activa:true}));
+                      if(nuevas.length>0)onUpdateProveedors([...empresas,...nuevas]);
+                      alert(`✅ ${nuevas.length} importados. ${lines.length-nuevas.length} omitidos.`);e.target.value="";
+                    };r.readAsText(file);
                   }} />
                 </label>
               </div>
-            </div>
-
-            <div style={{ background: T.white, borderRadius: 14, overflow: "hidden", border: `1px solid ${T.border}` }}>
-              <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap:8, flexWrap:"wrap" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                  {/* Select all checkbox */}
-                  <label style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer", userSelect:"none" }}>
-                    <input type="checkbox" checked={allEmpsSelected} onChange={e => {
-                      if (e.target.checked) setSelEmps(new Set(empFilt.map(x=>x.id)));
-                      else setSelEmps(new Set());
-                    }} style={{ width:15, height:15, cursor:"pointer" }} />
-                    <span style={{ fontSize:12, color:T.muted, fontWeight:600 }}>Seleccionar todos</span>
+              <div style={{ background:"#fff", borderRadius:16, border:"1px solid #e2e8f0", overflow:"hidden" }}>
+                <div style={{ padding:"10px 16px", background:"#f8fafc", borderBottom:"1px solid #e2e8f0", display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+                  <label style={{ display:"flex", alignItems:"center", gap:5, cursor:"pointer" }}>
+                    <input type="checkbox" checked={allEmpsSelected} onChange={e=>{ if(e.target.checked)setSelEmps(new Set(empFilt.map(x=>x.id)));else setSelEmps(new Set()); }} style={{ width:14,height:14 }} />
+                    <span style={{ fontSize:12, color:T.muted, fontWeight:600 }}>Todos</span>
                   </label>
-                  <span style={{ fontSize:12, color:T.slate }}>
-                    {empresas.filter(e => e.activa).length} activos · {empresas.filter(e => !e.activa).length} inactivos
-                  </span>
+                  <input value={empSearch} onChange={e=>setEmpSearch(e.target.value)} placeholder="🔍 Buscar..."
+                    style={{ flex:1, minWidth:80, padding:"6px 10px", borderRadius:8, border:"1px solid #e2e8f0", fontSize:12, fontFamily:"inherit", outline:"none" }} />
+                  <button onClick={()=>setConfirmBulk({tipo:"proveedor",ids:empresas.map(e=>e.id),count:empresas.length})}
+                    style={{ padding:"5px 10px", borderRadius:8, border:"none", background:"#fee2e2", color:"#b91c1c", fontSize:11, fontWeight:700, cursor:"pointer" }}>🗑️ Borrar todo</button>
                 </div>
-                <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                  <input value={empSearch} onChange={e => setEmpSearch(e.target.value)} placeholder="Buscar..."
-                    style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 13, width: 130 }} />
-                  <button onClick={() => setConfirmBulk({ tipo:"proveedor", ids: empresas.map(e=>e.id), count: empresas.length })}
-                    style={{ padding:"6px 12px", borderRadius:8, border:"none", background:"#fee2e2", color:"#b91c1c", fontSize:11, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>
-                    🗑️ Borrar todo
-                  </button>
+                <div style={{ maxHeight:"50vh", overflowY:"auto" }}>
+                  {lista.map(e=>(
+                    <div key={e.id} style={{ display:"flex", alignItems:"center", padding:"10px 16px", borderBottom:"1px solid #f1f5f9", gap:8, background:selEmps.has(e.id)?"#f0fdf4":"#fff" }}>
+                      <div style={{ width:3, height:28, borderRadius:99, background:e.activa?"#7dd105":"#e2e8f0", flexShrink:0 }} />
+                      <input type="checkbox" checked={selEmps.has(e.id)} onChange={()=>toggleSelEmp(e.id)} style={{ width:14,height:14,cursor:"pointer",flexShrink:0 }} />
+                      <span style={{ flex:1, fontSize:13, fontWeight:600, color:e.activa?T.navy:"#94a3b8", textDecoration:e.activa?"none":"line-through" }}>{e.nombre}</span>
+                      {!e.activa && <span style={{ fontSize:10, background:"#fee2e2", color:"#b91c1c", borderRadius:99, padding:"2px 7px", fontWeight:700 }}>Inactivo</span>}
+                      <button onClick={()=>onUpdateProveedors(empresas.map(x=>x.id===e.id?{...x,activa:!x.activa}:x))}
+                        style={{ padding:"3px 9px", borderRadius:8, border:`1px solid ${e.activa?"#fed7aa":"#bbf7d0"}`, cursor:"pointer", fontSize:11, fontWeight:700, background:e.activa?"#fff7ed":"#f0fdf4", color:e.activa?"#ea580c":"#16a34a" }}>
+                        {e.activa?"Desact.":"Activar"}
+                      </button>
+                      <button onClick={()=>{ if(window.confirm(`¿Eliminar "${e.nombre}"?`))onUpdateProveedors(empresas.filter(x=>x.id!==e.id)); }}
+                        style={{ width:26, height:26, borderRadius:8, border:"1px solid #fecaca", background:"#fff", cursor:"pointer", fontSize:14, color:"#b91c1c", display:"flex", alignItems:"center", justifyContent:"center" }}>×</button>
+                    </div>
+                  ))}
+                  {lista.length===0 && <div style={{ padding:"40px 20px", textAlign:"center", color:T.muted, fontSize:13 }}>{empSearch?`Sin resultados para "${empSearch}"`:"No hay proveedores"}</div>}
                 </div>
               </div>
-              <div style={{ maxHeight: "45vh", overflowY: "auto" }}>
-                {empFilt.map(e => (
-                  <div key={e.id} style={{
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                    padding: "10px 16px", borderBottom: `1px solid ${T.border}`,
-                    background: selEmps.has(e.id) ? "#f0fdf4" : "transparent",
-                    transition:"background .1s"
-                  }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                      <input type="checkbox" checked={selEmps.has(e.id)} onChange={() => toggleSelEmp(e.id)}
-                        style={{ width:15, height:15, cursor:"pointer", flexShrink:0 }} />
-                      <span style={{ fontSize: 13, color: e.activa ? T.navyMid : T.muted, textDecoration: e.activa ? "none" : "line-through" }}>{e.nombre}</span>
-                      {!e.activa && <span style={{ fontSize:10, background:T.redLight, color:T.red, borderRadius:99, padding:"1px 7px", fontWeight:700 }}>Inactivo</span>}
-                    </div>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={() => onUpdateProveedors(empresas.map(x => x.id === e.id ? { ...x, activa: !x.activa } : x))}
-                        style={{ padding: "4px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, background: e.activa ? T.redLight : T.greenLight, color: e.activa ? T.red : T.green }}>
-                        {e.activa ? "Desactivar" : "Activar"}
-                      </button>
-                      <button onClick={() => { if (window.confirm(`¿Eliminar "${e.nombre}"?`)) onUpdateProveedors(empresas.filter(x => x.id !== e.id)); }}
-                        style={{ padding: "4px 10px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, background: "#fee2e2", color: "#b91c1c" }}>
-                        🗑️
-                      </button>
-                    </div>
+            </div>
+          );
+        })()}
+
+        {tab==="sedes" && (() => {
+          const lista = sedeFilt;
+          return (
+            <div>
+              <BulkBar sel={selSedes} lista={sedes} tipo="sede"
+                onToggleActiva={(_,activa)=>onUpdateSedes(sedes.map(s=>selSedes.has(s.id)?{...s,activa}:s))}
+                onClear={()=>setSelSedes(new Set())} />
+              <div style={{ display:"flex", gap:10, marginBottom:16 }}>
+                {[["Activas",sedes.filter(s=>s.activa).length,"#dcfce7","#15803d"],["Inactivas",sedes.filter(s=>!s.activa).length,"#fee2e2","#b91c1c"],["Total",sedes.length,"#f1f5f9","#475569"]].map(([l,v,bg,c])=>(
+                  <div key={l} style={{ flex:1, background:bg, borderRadius:12, padding:"10px 14px", textAlign:"center" }}>
+                    <div style={{ fontSize:20, fontWeight:800, color:c }}>{v}</div>
+                    <div style={{ fontSize:11, color:c, opacity:.8 }}>{l}</div>
                   </div>
                 ))}
-                {empFilt.length === 0 && (
-                  <div style={{ padding:"24px", textAlign:"center", color:T.muted, fontSize:13 }}>
-                    {empSearch ? `Sin resultados para "${empSearch}"` : "No hay proveedores registrados"}
-                  </div>
-                )}
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* SEDES */}
-        {tab === "sedes" && (
-          <div>
-            <BulkBar
-              sel={selSedes} lista={sedes} tipo="sede"
-              onToggleActiva={(items, activa) => onUpdateSedes(sedes.map(s => selSedes.has(s.id) ? {...s, activa} : s))}
-              onClear={() => setSelSedes(new Set())}
-            />
-            <div style={{ background: T.white, borderRadius: 14, padding: 18, marginBottom: 16, border: `1px solid ${T.border}` }}>
-              <h4 style={{ fontSize: 14, fontWeight: 800, color: T.navy, marginBottom: 12 }}>Agregar sede</h4>
-              <div style={{ display: "flex", gap: 10 }}>
-                <input value={newSede} onChange={e => setNewSede(e.target.value)} placeholder="Nombre de la sede..."
-                  onKeyDown={e => { if (e.key === "Enter" && newSede.trim()) { onUpdateSedes([...sedes, { id: `s${Date.now()}`, nombre: newSede.trim(), activa: true }]); setNewSede(""); } }}
-                  style={{ flex: 1, padding: "11px 14px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 14 }} />
-                <button onClick={() => { if (newSede.trim()) { onUpdateSedes([...sedes, { id: `s${Date.now()}`, nombre: newSede.trim(), activa: true }]); setNewSede(""); } }}
-                  style={{ padding: "11px 18px", borderRadius: 8, border: "none", background: "#7dd105", color: "#05200b", cursor: "pointer", fontWeight: 800 }}>+ Agregar</button>
-              </div>
-              {/* Importar CSV */}
-              <div style={{ marginTop: 14, paddingTop: 14, borderTop: `1px solid ${T.border}` }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: T.slate, marginBottom: 8 }}>📥 Importar desde archivo</div>
-                <div style={{ fontSize: 12, color: T.muted, marginBottom: 10 }}>
-                  Sube un archivo <strong>.txt o .csv</strong> con <strong>un nombre por línea</strong>. Se agregarán todas las que no existan ya.
+              <div style={{ background:"#fff", borderRadius:16, padding:16, marginBottom:16, border:"1px solid #e2e8f0" }}>
+                <div style={{ fontSize:13, fontWeight:700, color:T.navy, marginBottom:10 }}>➕ Agregar sede</div>
+                <div style={{ display:"flex", gap:8, marginBottom:10 }}>
+                  <input value={newSede} onChange={e=>setNewSede(e.target.value)} placeholder="Nombre de la sede..."
+                    onKeyDown={e=>{ if(e.key==="Enter"&&newSede.trim()){onUpdateSedes([...sedes,{id:`s${Date.now()}`,nombre:newSede.trim(),activa:true}]);setNewSede("");}}}
+                    style={{ flex:1, padding:"10px 14px", borderRadius:10, border:"1.5px solid #e2e8f0", fontSize:14, outline:"none", fontFamily:"inherit" }} />
+                  <button onClick={()=>{if(newSede.trim()){onUpdateSedes([...sedes,{id:`s${Date.now()}`,nombre:newSede.trim(),activa:true}]);setNewSede("");}}}
+                    style={{ padding:"10px 18px", borderRadius:10, border:"none", background:"#0ea5e9", color:"#fff", cursor:"pointer", fontWeight:800 }}>+ Agregar</button>
                 </div>
-                <label style={{ display: "inline-flex", alignItems: "center", gap: 8, padding: "10px 16px", borderRadius: 8, background: "#f0fdf4", border: `1.5px dashed #7dd105`, cursor: "pointer", fontSize: 13, fontWeight: 700, color: "#3a6200" }}>
-                  📂 Seleccionar archivo
-                  <input type="file" accept=".csv,.txt" style={{ display: "none" }} onChange={e => {
-                    const file = e.target.files[0];
-                    if (!file) return;
-                    const reader = new FileReader();
-                    reader.onload = ev => {
-                      const lines = ev.target.result.split(/\r?\n/).map(l => l.trim()).filter(l => l.length > 0);
-                      const existentes = new Set(sedes.map(x => x.nombre.toLowerCase()));
-                      const nuevas = lines.filter(l => !existentes.has(l.toLowerCase())).map(nombre => ({ id: `s${Date.now()}-${Math.random().toString(36).slice(2)}`, nombre, activa: true }));
-                      if (nuevas.length > 0) onUpdateSedes([...sedes, ...nuevas]);
-                      alert(`✅ ${nuevas.length} sede(s) importadas. ${lines.length - nuevas.length} omitidas (ya existían).`);
-                      e.target.value = "";
-                    };
-                    reader.readAsText(file);
+                <label style={{ display:"inline-flex", alignItems:"center", gap:8, padding:"7px 12px", borderRadius:8, background:"#f0f9ff", border:"1.5px dashed #0ea5e9", cursor:"pointer", fontSize:12, fontWeight:700, color:"#0369a1" }}>
+                  📂 Importar .csv / .txt
+                  <input type="file" accept=".csv,.txt" style={{ display:"none" }} onChange={e=>{
+                    const file=e.target.files[0];if(!file)return;
+                    const r=new FileReader();r.onload=ev=>{
+                      const lines=ev.target.result.split(/\r?\n/).map(l=>l.trim()).filter(l=>l.length>0);
+                      const ex=new Set(sedes.map(x=>x.nombre.toLowerCase()));
+                      const nuevas=lines.filter(l=>!ex.has(l.toLowerCase())).map(nombre=>({id:`s${Date.now()}-${Math.random().toString(36).slice(2)}`,nombre,activa:true}));
+                      if(nuevas.length>0)onUpdateSedes([...sedes,...nuevas]);
+                      alert(`✅ ${nuevas.length} importadas. ${lines.length-nuevas.length} omitidas.`);e.target.value="";
+                    };r.readAsText(file);
                   }} />
                 </label>
               </div>
-            </div>
-            <div style={{ background: T.white, borderRadius: 14, overflow: "hidden", border: `1px solid ${T.border}` }}>
-              <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.border}`, display: "flex", justifyContent: "space-between", alignItems: "center", gap:8, flexWrap:"wrap" }}>
-                <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                  <label style={{ display:"flex", alignItems:"center", gap:6, cursor:"pointer", userSelect:"none" }}>
-                    <input type="checkbox" checked={allSedesSelected} onChange={e => {
-                      if (e.target.checked) setSelSedes(new Set(sedeFilt.map(x=>x.id)));
-                      else setSelSedes(new Set());
-                    }} style={{ width:15, height:15, cursor:"pointer" }} />
-                    <span style={{ fontSize:12, color:T.muted, fontWeight:600 }}>Seleccionar todos</span>
+              <div style={{ background:"#fff", borderRadius:16, border:"1px solid #e2e8f0", overflow:"hidden" }}>
+                <div style={{ padding:"10px 16px", background:"#f8fafc", borderBottom:"1px solid #e2e8f0", display:"flex", alignItems:"center", gap:10, flexWrap:"wrap" }}>
+                  <label style={{ display:"flex", alignItems:"center", gap:5, cursor:"pointer" }}>
+                    <input type="checkbox" checked={allSedesSelected} onChange={e=>{ if(e.target.checked)setSelSedes(new Set(sedeFilt.map(x=>x.id)));else setSelSedes(new Set()); }} style={{ width:14,height:14 }} />
+                    <span style={{ fontSize:12, color:T.muted, fontWeight:600 }}>Todos</span>
                   </label>
-                  <span style={{ fontSize:12, color:T.slate }}>
-                    {sedes.filter(s => s.activa).length} activos · {sedes.filter(s => !s.activa).length} inactivos
-                  </span>
+                  <input value={sedeSearch} onChange={e=>setSedeSearch(e.target.value)} placeholder="🔍 Buscar..."
+                    style={{ flex:1, minWidth:80, padding:"6px 10px", borderRadius:8, border:"1px solid #e2e8f0", fontSize:12, fontFamily:"inherit", outline:"none" }} />
+                  <button onClick={()=>setConfirmBulk({tipo:"sede",ids:sedes.map(s=>s.id),count:sedes.length})}
+                    style={{ padding:"5px 10px", borderRadius:8, border:"none", background:"#fee2e2", color:"#b91c1c", fontSize:11, fontWeight:700, cursor:"pointer" }}>🗑️ Borrar todo</button>
                 </div>
-                <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-                  <input value={sedeSearch} onChange={e => setSedeSearch(e.target.value)} placeholder="Buscar..."
-                    style={{ padding: "6px 10px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 13, width: 130 }} />
-                  <button onClick={() => setConfirmBulk({ tipo:"sede", ids: sedes.map(s=>s.id), count: sedes.length })}
-                    style={{ padding:"6px 12px", borderRadius:8, border:"none", background:"#fee2e2", color:"#b91c1c", fontSize:11, fontWeight:700, cursor:"pointer", whiteSpace:"nowrap" }}>
-                    🗑️ Borrar todo
-                  </button>
+                <div style={{ maxHeight:"50vh", overflowY:"auto" }}>
+                  {lista.map(s=>(
+                    <div key={s.id} style={{ display:"flex", alignItems:"center", padding:"10px 16px", borderBottom:"1px solid #f1f5f9", gap:8, background:selSedes.has(s.id)?"#f0f9ff":"#fff" }}>
+                      <div style={{ width:3, height:28, borderRadius:99, background:s.activa?"#0ea5e9":"#e2e8f0", flexShrink:0 }} />
+                      <input type="checkbox" checked={selSedes.has(s.id)} onChange={()=>toggleSelSede(s.id)} style={{ width:14,height:14,cursor:"pointer",flexShrink:0 }} />
+                      <span style={{ flex:1, fontSize:13, fontWeight:600, color:s.activa?T.navy:"#94a3b8", textDecoration:s.activa?"none":"line-through" }}>{s.nombre}</span>
+                      {!s.activa && <span style={{ fontSize:10, background:"#fee2e2", color:"#b91c1c", borderRadius:99, padding:"2px 7px", fontWeight:700 }}>Inactiva</span>}
+                      <button onClick={()=>onUpdateSedes(sedes.map(x=>x.id===s.id?{...x,activa:!x.activa}:x))}
+                        style={{ padding:"3px 9px", borderRadius:8, border:`1px solid ${s.activa?"#fed7aa":"#bbf7d0"}`, cursor:"pointer", fontSize:11, fontWeight:700, background:s.activa?"#fff7ed":"#f0fdf4", color:s.activa?"#ea580c":"#16a34a" }}>
+                        {s.activa?"Desact.":"Activar"}
+                      </button>
+                      <button onClick={()=>{ if(window.confirm(`¿Eliminar "${s.nombre}"?`))onUpdateSedes(sedes.filter(x=>x.id!==s.id)); }}
+                        style={{ width:26, height:26, borderRadius:8, border:"1px solid #fecaca", background:"#fff", cursor:"pointer", fontSize:14, color:"#b91c1c", display:"flex", alignItems:"center", justifyContent:"center" }}>×</button>
+                    </div>
+                  ))}
+                  {lista.length===0 && <div style={{ padding:"40px 20px", textAlign:"center", color:T.muted, fontSize:13 }}>{sedeSearch?`Sin resultados para "${sedeSearch}"`:"No hay sedes"}</div>}
                 </div>
               </div>
-              <div style={{ maxHeight: "45vh", overflowY: "auto" }}>
-                {sedeFilt.map(s => (
-                  <div key={s.id} style={{
-                    display: "flex", justifyContent: "space-between", alignItems: "center",
-                    padding: "10px 16px", borderBottom: `1px solid ${T.border}`,
-                    background: selSedes.has(s.id) ? "#f0fdf4" : "transparent",
-                    transition:"background .1s"
-                  }}>
-                    <div style={{ display:"flex", alignItems:"center", gap:10 }}>
-                      <input type="checkbox" checked={selSedes.has(s.id)} onChange={() => toggleSelSede(s.id)}
-                        style={{ width:15, height:15, cursor:"pointer", flexShrink:0 }} />
-                      <span style={{ fontSize: 13, color: s.activa ? T.navyMid : T.muted, textDecoration: s.activa ? "none" : "line-through" }}>{s.nombre}</span>
-                      {!s.activa && <span style={{ fontSize:10, background:T.redLight, color:T.red, borderRadius:99, padding:"1px 7px", fontWeight:700 }}>Inactiva</span>}
-                    </div>
-                    <div style={{ display: "flex", gap: 6 }}>
-                      <button onClick={() => onUpdateSedes(sedes.map(x => x.id === s.id ? { ...x, activa: !x.activa } : x))}
-                        style={{ padding: "4px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, background: s.activa ? T.redLight : T.greenLight, color: s.activa ? T.red : T.green }}>
-                        {s.activa ? "Desactivar" : "Activar"}
-                      </button>
-                      <button onClick={() => { if (window.confirm(`¿Eliminar "${s.nombre}"?`)) onUpdateSedes(sedes.filter(x => x.id !== s.id)); }}
-                        style={{ padding: "4px 10px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 11, fontWeight: 700, background: "#fee2e2", color: "#b91c1c" }}>
-                        🗑️
-                      </button>
+            </div>
+          );
+        })()}
+
+        {["guardias","comercials","admins","viewers"].includes(tab) && (() => {
+          const cfgs = {
+            guardias:  {icon:"🛡️",label:"Guardia",    color:"#f59e0b",bg:"#fffbeb",lista:guardias,hint:"Solo ven la vista de seguridad de su sede asignada."},
+            comercials:{icon:"🏭",label:"Comercial",  color:"#8b5cf6",bg:"#f5f3ff",lista:comercials,hint:"Pueden ver el dashboard, exportar Excel y gestionar proveedores."},
+            admins:    {icon:"👑",label:"Admin",       color:"#ef4444",bg:"#fef2f2",lista:admins,hint:"Acceso total al sistema. En producción se gestiona vía Azure AD Groups."},
+            viewers:   {icon:"👁️",label:"Espectador", color:"#6366f1",bg:"#eef2ff",lista:viewers,hint:"Solo visualizan el dashboard. No pueden editar ni crear registros."},
+          };
+          const cfg = cfgs[tab];
+          const doAdd = () => {
+            if(tab==="guardias"&&newGuardiaEmail.trim()&&newGuardiaSedeId){onUpdateGuardias([...guardias,{email:newGuardiaEmail.trim().toLowerCase(),nombre:newGuardiaEmail.split("@")[0],sedeId:newGuardiaSedeId,addedBy:user.email,addedAt:Date.now()}]);setNewGuardiaEmail("");setNewGuardiaSedeId("");}
+            else if(tab==="comercials"&&newComercial.trim()){onUpdateComercials([...comercials,{email:newComercial.trim().toLowerCase(),addedBy:user.email,addedAt:Date.now()}]);setNewComercial("");}
+            else if(tab==="admins"&&newAdmin.trim()){onUpdateAdmins([...admins,{email:newAdmin.trim(),addedBy:user.email,addedAt:Date.now()}]);setNewAdmin("");}
+            else if(tab==="viewers"&&newViewer.trim()){onUpdateViewers([...viewers,{email:newViewer.trim(),addedBy:user.email,addedAt:Date.now()}]);setNewViewer("");}
+          };
+          const doRemove = i => {
+            if(tab==="guardias")onUpdateGuardias(guardias.filter((_,j)=>j!==i));
+            else if(tab==="comercials")onUpdateComercials(comercials.filter((_,j)=>j!==i));
+            else if(tab==="admins")onUpdateAdmins(admins.filter((_,j)=>j!==i));
+            else onUpdateViewers(viewers.filter((_,j)=>j!==i));
+          };
+          const curVal = tab==="comercials"?newComercial:tab==="admins"?newAdmin:newViewer;
+          const setCurVal = v => { if(tab==="comercials")setNewComercial(v);else if(tab==="admins")setNewAdmin(v);else setNewViewer(v); };
+          return (
+            <div>
+              <div style={{ background:cfg.bg, border:`1px solid ${cfg.color}40`, borderRadius:12, padding:"11px 14px", marginBottom:16, fontSize:13, color:cfg.color, fontWeight:600 }}>
+                {cfg.icon} {cfg.hint}
+              </div>
+              <div style={{ background:"#fff", borderRadius:16, padding:16, marginBottom:16, border:"1px solid #e2e8f0" }}>
+                <div style={{ fontSize:13, fontWeight:700, color:T.navy, marginBottom:10 }}>➕ Agregar {cfg.label.toLowerCase()}</div>
+                {tab==="guardias" ? (
+                  <div style={{ display:"flex", flexDirection:"column", gap:8 }}>
+                    <input value={newGuardiaEmail} onChange={e=>setNewGuardiaEmail(e.target.value)} placeholder="Email Microsoft del guardia..."
+                      style={{ width:"100%", padding:"10px 14px", borderRadius:10, border:"1.5px solid #e2e8f0", fontSize:14, outline:"none", fontFamily:"inherit" }} />
+                    <div style={{ display:"flex", gap:8 }}>
+                      <select value={newGuardiaSedeId} onChange={e=>setNewGuardiaSedeId(e.target.value)}
+                        style={{ flex:1, padding:"10px 14px", borderRadius:10, border:"1.5px solid #e2e8f0", fontSize:13, fontFamily:"inherit", background:"#fff" }}>
+                        <option value="">Seleccionar sede...</option>
+                        {sedesActivas.map(s=><option key={s.id} value={s.id}>{s.nombre}</option>)}
+                      </select>
+                      <button onClick={doAdd} style={{ padding:"10px 18px", borderRadius:10, border:"none", background:cfg.color, color:"#fff", cursor:"pointer", fontWeight:800, fontSize:14 }}>+ Agregar</button>
                     </div>
                   </div>
-                ))}
-                {sedeFilt.length === 0 && (
-                  <div style={{ padding: "24px", textAlign: "center", color: T.muted, fontSize: 13 }}>
-                    {sedeSearch ? `Sin resultados para "${sedeSearch}"` : "No hay sedes registradas"}
+                ) : (
+                  <div style={{ display:"flex", gap:8 }}>
+                    <input value={curVal} onChange={e=>setCurVal(e.target.value)} placeholder={`Email Microsoft del ${cfg.label.toLowerCase()}...`}
+                      onKeyDown={e=>{ if(e.key==="Enter")doAdd(); }}
+                      style={{ flex:1, padding:"10px 14px", borderRadius:10, border:"1.5px solid #e2e8f0", fontSize:14, outline:"none", fontFamily:"inherit" }} />
+                    <button onClick={doAdd} style={{ padding:"10px 18px", borderRadius:10, border:"none", background:cfg.color, color:"#fff", cursor:"pointer", fontWeight:800, fontSize:14 }}>+ Agregar</button>
                   </div>
                 )}
               </div>
-            </div>
-          </div>
-        )}
-
-        {/* ADMINS */}
-        {tab === "admins" && (
-          <div>
-            <div style={{ background: "#f2fde4", border: `1px solid #7dd105`, borderRadius: 12, padding: 14, marginBottom: 16, fontSize: 13, color: "#3a6200", lineHeight: 1.5 }}>
-              ⚠️ En producción, los permisos de admin se gestionan vía <strong>Azure AD Groups</strong> en Microsoft 365. Aquí se simula el control de acceso.
-            </div>
-            <div style={{ background: T.white, borderRadius: 14, padding: 18, marginBottom: 16, border: `1px solid ${T.border}` }}>
-              <h4 style={{ fontSize: 14, fontWeight: 800, color: T.navy, marginBottom: 12 }}>Designar administrador</h4>
-              <div style={{ display: "flex", gap: 10 }}>
-                <input value={newAdmin} onChange={e => setNewAdmin(e.target.value)} placeholder="Email Microsoft del usuario..."
-                  style={{ flex: 1, padding: "11px 14px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 14 }} />
-                <button onClick={() => { if (newAdmin.trim()) { onUpdateAdmins([...admins, { email: newAdmin.trim(), addedBy: user.email, addedAt: Date.now() }]); setNewAdmin(""); } }}
-                  style={{ padding: "11px 18px", borderRadius: 8, border: "none", background: "#7dd105", color: "#05200b", cursor: "pointer", fontWeight: 800 }}>+ Agregar</button>
-              </div>
-            </div>
-            <div style={{ background: T.white, borderRadius: 14, overflow: "hidden", border: `1px solid ${T.border}` }}>
-              <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.border}`, fontSize: 13, fontWeight: 700, color: T.slate }}>
-                👑 {admins.length} administrador{admins.length !== 1 ? "es" : ""}
-              </div>
-              {admins.map((a, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: `1px solid ${T.border}` }}>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: T.navyMid }}>{a.email}</div>
-                    <div style={{ fontSize: 11, color: T.muted }}>Agregado: {a.addedAt ? fmtDate(a.addedAt) : "—"}</div>
-                  </div>
-                  {a.email !== user.email ? (
-                    <button onClick={() => onUpdateAdmins(admins.filter((_, j) => j !== i))}
-                      style={{ padding: "5px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, background: T.redLight, color: T.red }}>
-                      Quitar
-                    </button>
-                  ) : (
-                    <span style={{ fontSize: 11, color: "#3a6200", fontWeight: 700, background: T.accentLight, padding: "2px 8px", borderRadius: 99 }}>Tú ✓</span>
-                  )}
+              <div style={{ background:"#fff", borderRadius:16, border:"1px solid #e2e8f0", overflow:"hidden" }}>
+                <div style={{ padding:"11px 16px", background:"#f8fafc", borderBottom:"1px solid #e2e8f0", fontSize:12, fontWeight:700, color:"#475569" }}>
+                  {cfg.icon} {cfg.lista.length} {cfg.label.toLowerCase()}{cfg.lista.length!==1?"s":""}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* GUARDIAS */}
-        {tab === "guardias" && (
-          <div>
-            <div style={{ background: "#ecfdf5", border: `1px solid #6ee7b7`, borderRadius: 12, padding: 14, marginBottom: 16, fontSize: 13, color: "#065f46", lineHeight: 1.6 }}>
-              🛡️ Los <strong>guardias de seguridad</strong> pueden registrar entradas y salidas en su sede asignada. El admin asigna el correo y la sede — el guardia no puede cambiarla.
-            </div>
-            <div style={{ background: T.white, borderRadius: 14, padding: 18, marginBottom: 16, border: `1px solid ${T.border}` }}>
-              <h4 style={{ fontSize: 14, fontWeight: 800, color: T.navy, marginBottom: 12 }}>Agregar guardia</h4>
-              <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-                <input value={newGuardiaEmail} onChange={e => setNewGuardiaEmail(e.target.value)}
-                  placeholder="Email Microsoft del guardia..."
-                  style={{ flex: 1, padding: "11px 14px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 14 }} />
-                <select value={newGuardiaSedeId} onChange={e => setNewGuardiaSedeId(e.target.value)}
-                  style={{ padding: "11px 14px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 14, background: "#fff" }}>
-                  <option value="">-- Selecciona la sede --</option>
-                  {sedesActivas.map(s => <option key={s.id} value={s.id}>{s.nombre}</option>)}
-                </select>
-                <button onClick={() => {
-                  if (newGuardiaEmail.trim() && newGuardiaSedeId) {
-                    onUpdateGuardias([...guardias, { email: newGuardiaEmail.trim().toLowerCase(), sedeId: newGuardiaSedeId, addedBy: user.email, addedAt: Date.now() }]);
-                    setNewGuardiaEmail(""); setNewGuardiaSedeId("");
-                  }
-                }} disabled={!newGuardiaEmail.trim() || !newGuardiaSedeId}
-                  style={{ padding: "11px 18px", borderRadius: 8, border: "none", background: (!newGuardiaEmail.trim() || !newGuardiaSedeId) ? "#334155" : T.brand, color: "#fff", cursor: "pointer", fontWeight: 700 }}>
-                  + Agregar guardia
-                </button>
-              </div>
-            </div>
-            <div style={{ background: T.white, borderRadius: 14, overflow: "hidden", border: `1px solid ${T.border}` }}>
-              <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.border}`, fontSize: 13, fontWeight: 700, color: T.slate }}>
-                🛡️ {guardias.length} guardia{guardias.length !== 1 ? "s" : ""} registrado{guardias.length !== 1 ? "s" : ""}
-              </div>
-              {guardias.length === 0 && (
-                <div style={{ padding: "32px 20px", textAlign: "center", color: T.muted, fontSize: 13 }}>No hay guardias registrados aún</div>
-              )}
-              {guardias.map((g, i) => {
-                const sede = sedes.find(s => s.id === g.sedeId);
-                return (
-                  <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: `1px solid ${T.border}` }}>
-                    <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                      <div style={{ width: 28, height: 28, borderRadius: 8, background: "#dcfce7", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>🛡️</div>
-                      <div>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: T.navyMid }}>{g.email}</div>
-                        <div style={{ fontSize: 11, color: T.muted }}>Sede: <strong>{sede?.nombre || "—"}</strong> · Agregado: {g.addedAt ? fmtDate(g.addedAt) : "—"}</div>
+                {cfg.lista.length===0 && <div style={{ padding:"40px 20px", textAlign:"center", color:T.muted, fontSize:13 }}>No hay {cfg.label.toLowerCase()}s registrados</div>}
+                {cfg.lista.map((item,i)=>{
+                  const sede = tab==="guardias"?sedes.find(s=>s.id===item.sedeId):null;
+                  return (
+                    <div key={i} style={{ display:"flex", alignItems:"center", padding:"12px 16px", borderBottom:"1px solid #f1f5f9", gap:12 }}>
+                      <div style={{ width:36, height:36, borderRadius:10, background:cfg.bg, display:"flex", alignItems:"center", justifyContent:"center", fontSize:16, flexShrink:0 }}>{cfg.icon}</div>
+                      <div style={{ flex:1, minWidth:0 }}>
+                        <div style={{ fontSize:13, fontWeight:700, color:T.navy, overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }}>{item.email}</div>
+                        <div style={{ fontSize:11, color:T.muted, marginTop:2 }}>
+                          {sede&&<span>📍 {sede.nombre} · </span>}
+                          {item.addedAt?`Agregado ${fmtDate(item.addedAt)}`:""}
+                          {item.addedBy?` · por ${item.addedBy}`:""}
+                        </div>
                       </div>
+                      <button onClick={()=>doRemove(i)}
+                        style={{ padding:"5px 12px", borderRadius:8, border:"1px solid #fecaca", background:"#fff", cursor:"pointer", fontSize:12, fontWeight:700, color:"#b91c1c", flexShrink:0 }}>
+                        Quitar
+                      </button>
                     </div>
-                    <button onClick={() => onUpdateGuardias(guardias.filter((_, j) => j !== i))}
-                      style={{ padding: "5px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, background: T.redLight, color: T.red }}>
-                      Quitar
-                    </button>
-                  </div>
-                );
-              })}
+                  );
+                })}
+              </div>
             </div>
-          </div>
-        )}
+          );
+        })()}
 
-        {/* COMERCIALES */}
-        {tab === "comercials" && (
-          <div>
-            <div style={{ background: "#f0f9ff", border: `1px solid #bae6fd`, borderRadius: 12, padding: 14, marginBottom: 16, fontSize: 13, color: "#0369a1", lineHeight: 1.6 }}>
-              🏭 Los <strong>comerciales</strong> pueden ver el dashboard, descargar Excel, y gestionar el catálogo de empresas (agregar y activar/desactivar). No pueden crear registros de entrada/salida.
-            </div>
-            <div style={{ background: T.white, borderRadius: 14, padding: 18, marginBottom: 16, border: `1px solid ${T.border}` }}>
-              <h4 style={{ fontSize: 14, fontWeight: 800, color: T.navy, marginBottom: 12 }}>Agregar comercial</h4>
-              <div style={{ display: "flex", gap: 10 }}>
-                <input value={newComercial} onChange={e => setNewComercial(e.target.value)} placeholder="Email Microsoft del comercial..."
-                  onKeyDown={e => { if (e.key === "Enter" && newComercial.trim()) { onUpdateComercials([...comercials, { email: newComercial.trim().toLowerCase(), addedBy: user.email, addedAt: Date.now() }]); setNewComercial(""); } }}
-                  style={{ flex: 1, padding: "11px 14px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 14 }} />
-                <button onClick={() => { if (newComercial.trim()) { onUpdateComercials([...comercials, { email: newComercial.trim().toLowerCase(), addedBy: user.email, addedAt: Date.now() }]); setNewComercial(""); } }}
-                  style={{ padding: "11px 18px", borderRadius: 8, border: "none", background: "#0ea5e9", color: "#fff", cursor: "pointer", fontWeight: 800 }}>+ Agregar</button>
-              </div>
-            </div>
-            <div style={{ background: T.white, borderRadius: 14, overflow: "hidden", border: `1px solid ${T.border}` }}>
-              <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.border}`, fontSize: 13, fontWeight: 700, color: T.slate }}>
-                🏭 {comercials.length} comercial{comercials.length !== 1 ? "es" : ""}
-              </div>
-              {comercials.length === 0 && (
-                <div style={{ padding: "32px 20px", textAlign: "center", color: T.muted, fontSize: 13 }}>No hay comerciales registrados aún</div>
-              )}
-              {comercials.map((c, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: `1px solid ${T.border}` }}>
-                  <div>
-                    <div style={{ fontSize: 14, fontWeight: 600, color: T.navyMid }}>{c.email}</div>
-                    <div style={{ fontSize: 11, color: T.muted }}>Agregado: {c.addedAt ? fmtDate(c.addedAt) : "—"} · por {c.addedBy}</div>
-                  </div>
-                  <button onClick={() => onUpdateComercials(comercials.filter((_, j) => j !== i))}
-                    style={{ padding: "5px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, background: T.redLight, color: T.red }}>
-                    Quitar
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* VIEWERS */}
-        {tab === "viewers" && (
-          <div>
-            <div style={{ background: "#ede9fe", border: `1px solid #c4b5fd`, borderRadius: 12, padding: 14, marginBottom: 16, fontSize: 13, color: "#5b21b6", lineHeight: 1.6 }}>
-              👁️ Los <strong>espectadores</strong> ven el dashboard en tiempo real igual que un admin, pero <strong>no pueden editar registros ni acceder al panel de configuración</strong>. Solo visualizan.
-            </div>
-            <div style={{ background: T.white, borderRadius: 14, padding: 18, marginBottom: 16, border: `1px solid ${T.border}` }}>
-              <h4 style={{ fontSize: 14, fontWeight: 800, color: T.navy, marginBottom: 12 }}>Agregar espectador</h4>
-              <div style={{ display: "flex", gap: 10 }}>
-                <input value={newViewer} onChange={e => setNewViewer(e.target.value)} placeholder="Email Microsoft del espectador..."
-                  onKeyDown={e => { if (e.key === "Enter" && newViewer.trim()) { onUpdateViewers([...viewers, { email: newViewer.trim(), addedBy: user.email, addedAt: Date.now() }]); setNewViewer(""); } }}
-                  style={{ flex: 1, padding: "11px 14px", borderRadius: 8, border: `1px solid ${T.border}`, fontSize: 14 }} />
-                <button onClick={() => { if (newViewer.trim()) { onUpdateViewers([...viewers, { email: newViewer.trim(), addedBy: user.email, addedAt: Date.now() }]); setNewViewer(""); } }}
-                  style={{ padding: "11px 18px", borderRadius: 8, border: "none", background: "#7c3aed", color: "#fff", cursor: "pointer", fontWeight: 700 }}>+ Agregar</button>
-              </div>
-            </div>
-            <div style={{ background: T.white, borderRadius: 14, overflow: "hidden", border: `1px solid ${T.border}` }}>
-              <div style={{ padding: "12px 16px", borderBottom: `1px solid ${T.border}`, fontSize: 13, fontWeight: 700, color: T.slate }}>
-                👁️ {viewers.length} espectador{viewers.length !== 1 ? "es" : ""}
-              </div>
-              {viewers.length === 0 && (
-                <div style={{ padding: "32px 20px", textAlign: "center", color: T.muted, fontSize: 13 }}>No hay espectadores registrados aún</div>
-              )}
-              {viewers.map((v, i) => (
-                <div key={i} style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "12px 16px", borderBottom: `1px solid ${T.border}` }}>
-                  <div style={{ display: "flex", alignItems: "center", gap: 8 }}>
-                    <div style={{ width: 28, height: 28, borderRadius: 8, background: "#ede9fe", display: "flex", alignItems: "center", justifyContent: "center", fontSize: 14 }}>👁️</div>
-                    <div>
-                      <div style={{ fontSize: 14, fontWeight: 600, color: T.navyMid }}>{v.email}</div>
-                      <div style={{ fontSize: 11, color: T.muted }}>Agregado: {v.addedAt ? fmtDate(v.addedAt) : "—"} · por {v.addedBy}</div>
-                    </div>
-                  </div>
-                  <button onClick={() => onUpdateViewers(viewers.filter((_, j) => j !== i))}
-                    style={{ padding: "5px 12px", borderRadius: 20, border: "none", cursor: "pointer", fontSize: 12, fontWeight: 700, background: T.redLight, color: T.red }}>
-                    Quitar
-                  </button>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
-        {/* AUDITORÍA */}
-        {tab === "auditoria" && (
-          <AuditoriaView auditLog={auditLog} />
-        )}
+        {tab==="auditoria" && <AuditoriaView auditLog={auditLog} />}
 
       </div>
     </div>
   );
-}
+
 function App() {
   const [currentUser, setCurrentUser] = useState(null);
   const [view, setView] = useState("login");
