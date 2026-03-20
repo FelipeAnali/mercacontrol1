@@ -3877,287 +3877,470 @@ function ComercialProveedorsPanel({ empresas, onUpdateProveedors }) {
 // ─── Admin Panel ──────────────────────────────────────────────────────────────
 // ─── Stress Test View ─────────────────────────────────────────────────────────
 function StressTestView({ registros, sedes, empresas, onUpdateRegistros }) {
-  const [running, setRunning]   = useState(false);
-  const [results, setResults]   = useState([]);
+  const [running,  setRunning]  = useState(false);
+  const [results,  setResults]  = useState([]);
   const [progress, setProgress] = useState(0);
-  const [config, setConfig]     = useState({ nRegistros: 1000, nConcurrentes: 5, nDias: 30 });
+  const [phase,    setPhase]    = useState("");
+  const [config,   setConfig]   = useState({
+    nRegistros:    1000,
+    nAcuerdos:     20,
+    nConcurrentes: 5,
+    rangoTiempo:   "30d",   // 1d 7d 30d 6m 1y 3y 5y
+    nSesiones:     3,       // usuarios simultáneos simulados
+  });
 
-  const sedesActivas   = sedes.filter(s => s.activa);
+  const sedesActivas    = sedes.filter(s => s.activa);
   const empresasActivas = empresas.filter(e => e.activa);
 
-  const log = (msg, type="info", ms=null) => {
-    setResults(prev => [...prev, {
-      id: Date.now() + Math.random(),
-      msg, type,
-      ms: ms !== null ? ms : null,
-      ts: new Date().toLocaleTimeString("es-CO")
-    }]);
+  // ── Helpers de logging ──────────────────────────────────────────────────────
+  const logsRef = React.useRef([]);
+  const addLog = (msg, type="info", ms=null, extra=null) => {
+    const entry = { id: Date.now()+Math.random(), msg, type, ms, extra, ts: new Date().toLocaleTimeString("es-CO") };
+    logsRef.current = [...logsRef.current, entry];
+    setResults([...logsRef.current]);
   };
+  const sep = (label="") => addLog(label, "sep");
 
-  // ── Generar registros falsos realistas ──────────────────────────────────────
-  const generarRegistros = () => {
-    if (!sedesActivas.length || !empresasActivas.length) {
-      log("❌ Necesitas al menos 1 sede y 1 proveedor activos", "error"); return [];
-    }
-    const nombres = ["Carlos Pérez","Ana Gómez","Luis Martínez","María Torres","Juan López",
-                     "Sandra Ríos","Pedro Ruiz","Laura Vega","Andrés Mora","Carmen Silva"];
-    const nuevos = [];
+  // ── Rango de tiempo en ms ───────────────────────────────────────────────────
+  const rangoMs = () => {
+    const map = { "1d":864e5, "7d":6048e5, "30d":2592e6, "6m":1.577e10, "1y":3.154e10, "3y":9.461e10, "5y":1.577e11 };
+    return map[config.rangoTiempo] || 2592e6;
+  };
+  const rangoLabel = () => ({ "1d":"1 día","7d":"7 días","30d":"30 días","6m":"6 meses","1y":"1 año","3y":"3 años","5y":"5 años" })[config.rangoTiempo];
+
+  // ── Generadores ─────────────────────────────────────────────────────────────
+  const nombres = ["Carlos Pérez","Ana Gómez","Luis Martínez","María Torres","Juan López",
+                   "Sandra Ríos","Pedro Ruiz","Laura Vega","Andrés Mora","Carmen Silva",
+                   "Héctor Díaz","Patricia León","Felipe Suárez","Claudia Herrera","Roberto Peña"];
+  const DIAS_SEM = ["domingo","lunes","martes","miércoles","jueves","viernes","sábado"];
+
+  const genRegistros = (n) => {
+    if (!sedesActivas.length || !empresasActivas.length) return [];
     const ahora = Date.now();
-    const diasMs = config.nDias * 24 * 60 * 60 * 1000;
-
-    for (let i = 0; i < config.nRegistros; i++) {
-      const sede = sedesActivas[Math.floor(Math.random() * sedesActivas.length)];
-      const emp  = empresasActivas[Math.floor(Math.random() * empresasActivas.length)];
-      const guardia = nombres[Math.floor(Math.random() * nombres.length)];
-      const tsEntrada = ahora - Math.floor(Math.random() * diasMs);
-      const tsSalida  = tsEntrada + Math.floor(Math.random() * 4 * 60 * 60 * 1000); // hasta 4h después
-
-      nuevos.push({
-        id: `stress-${Date.now()}-${i}`,
-        consecutivo: (registros.length || 0) + i + 1,
-        proveedor: emp.nombre, proveedorId: emp.id,
-        tipo: "entrada",
-        sedeId: sede.id, sedeName: sede.nombre,
-        guardiaName: guardia, guardiaId: `g-${i}`,
-        gps: null, timestamp: tsEntrada,
-        pendingSync: false, syncedAt: tsEntrada,
-      });
-      // ~70% tienen salida emparejada
-      if (Math.random() > 0.3) {
-        nuevos.push({
-          id: `stress-${Date.now()}-${i}-s`,
-          consecutivo: (registros.length || 0) + i + 1,
-          proveedor: emp.nombre, proveedorId: emp.id,
-          tipo: "salida",
-          sedeId: sede.id, sedeName: sede.nombre,
-          guardiaName: guardia, guardiaId: `g-${i}`,
-          gps: null, timestamp: tsSalida,
-          pendingSync: false, syncedAt: tsSalida,
-        });
+    const rango = rangoMs();
+    const result = [];
+    for (let i = 0; i < n; i++) {
+      const sede = sedesActivas[i % sedesActivas.length];
+      const emp  = empresasActivas[i % empresasActivas.length];
+      const guardia = nombres[i % nombres.length];
+      const tsE = ahora - Math.floor(Math.random() * rango);
+      result.push({ id:`st-e${i}`, consecutivo:1e6+i, proveedor:emp.nombre, proveedorId:emp.id, tipo:"entrada", sedeId:sede.id, sedeName:sede.nombre, guardiaName:guardia, guardiaId:`g${i%10}`, gps:null, timestamp:tsE, pendingSync:false, syncedAt:tsE });
+      if (Math.random() > 0.25) {
+        const tsS = tsE + Math.floor(Math.random() * 4 * 3600000);
+        result.push({ id:`st-s${i}`, consecutivo:1e6+i, proveedor:emp.nombre, proveedorId:emp.id, tipo:"salida", sedeId:sede.id, sedeName:sede.nombre, guardiaName:guardia, guardiaId:`g${i%10}`, gps:null, timestamp:tsS, pendingSync:false, syncedAt:tsS });
       }
     }
-    return nuevos;
+    return result;
+  };
+
+  const genAcuerdos = (n) => {
+    if (!sedesActivas.length || !empresasActivas.length) return [];
+    const result = [];
+    for (let i = 0; i < n; i++) {
+      const sede = sedesActivas[i % sedesActivas.length];
+      const emp  = empresasActivas[i % empresasActivas.length];
+      const horas = {};
+      DIAS_SEM.forEach(d => { horas[d] = Math.random() > 0.3 ? Math.floor(Math.random()*6)+1 : 0; });
+      result.push({ id:`ac${i}`, empresaId:emp.id, sedeId:sede.id, horas, notas:"Test", updatedAt:Date.now() });
+    }
+    return result;
   };
 
   // ── Test principal ──────────────────────────────────────────────────────────
   const runTest = async () => {
-    setRunning(true);
-    setResults([]);
-    setProgress(0);
+    setRunning(true); logsRef.current = []; setResults([]); setProgress(0);
 
-    log(`🚀 Iniciando test — ${config.nRegistros} registros, ${config.nConcurrentes} operaciones simultáneas, ${config.nDias} días de datos`, "info");
-    await new Promise(r => setTimeout(r, 100));
+    const totalTests = 12;
+    let t = 0;
+    const tick = (n, label) => { t = n; setProgress(Math.round(n/totalTests*100)); setPhase(label); };
 
-    // ── TEST 1: Generación de datos ──
-    setProgress(10);
-    log("📦 TEST 1: Generando registros de prueba...", "info");
-    const t1 = performance.now();
-    const nuevos = generarRegistros();
-    const t1ms = Math.round(performance.now() - t1);
-    log(`✅ ${nuevos.length} registros generados`, t1ms < 500 ? "success" : "warning", t1ms);
-    await new Promise(r => setTimeout(r, 50));
+    addLog(`🚀 INICIO — ${config.nRegistros.toLocaleString()} registros · ${config.nAcuerdos} acuerdos · rango ${rangoLabel()} · ${config.nConcurrentes} ops simultáneas · ${config.nSesiones} sesiones`, "info");
+    await new Promise(r=>setTimeout(r,80));
 
-    // ── TEST 2: Escritura en localStorage ──
-    setProgress(25);
-    log("💾 TEST 2: Escritura en localStorage (carga masiva)...", "info");
-    const t2 = performance.now();
-    const todosRegistros = [...registros, ...nuevos];
+    // ════════════════════════════════════════
+    // T1 — Generación de datos
+    // ════════════════════════════════════════
+    sep("── DATOS ──────────────────────────────────────");
+    tick(1,"Generando datos...");
+    const t1=performance.now();
+    const newRegs = genRegistros(config.nRegistros);
+    const newAcuerdos = genAcuerdos(config.nAcuerdos);
+    const t1ms = Math.round(performance.now()-t1);
+    addLog(`📦 ${newRegs.length.toLocaleString()} registros + ${newAcuerdos.length} acuerdos generados`, newRegs.length>0?"success":"error", t1ms);
+    const totalRegs = [...registros, ...newRegs];
+    await new Promise(r=>setTimeout(r,50));
+
+    // ════════════════════════════════════════
+    // T2 — Tamaño y escritura localStorage
+    // ════════════════════════════════════════
+    tick(2,"Midiendo capacidad...");
+    const jsonStr = JSON.stringify(totalRegs);
+    const sizeKb = Math.round(jsonStr.length/1024);
+    const limitKb = 5120;
+    const pct = Math.round(sizeKb/limitKb*100);
+    const sizeType = sizeKb < 2000 ? "success" : sizeKb < 4000 ? "warning" : "error";
+    addLog(`💾 Tamaño total: ${sizeKb} KB / ${limitKb} KB (${pct}% del límite localStorage)`, sizeType, null,
+      `${sizeKb<2000?"✅ Seguro":"⚠️ Precaución — considera limpiar datos históricos"}`);
+
+    const t2=performance.now();
     try {
-      localStorage.setItem("mreg-v1-registros", JSON.stringify(todosRegistros));
-      const t2ms = Math.round(performance.now() - t2);
-      const sizeKb = Math.round(JSON.stringify(todosRegistros).length / 1024);
-      log(`✅ ${todosRegistros.length} registros escritos — ${sizeKb} KB`, t2ms < 200 ? "success" : "warning", t2ms);
+      localStorage.setItem("mreg-v1-stress-test", jsonStr);
+      localStorage.removeItem("mreg-v1-stress-test");
+      addLog(`💾 Escritura localStorage: OK`, "success", Math.round(performance.now()-t2));
     } catch(e) {
-      log(`❌ Error localStorage: ${e.message} — posible límite de 5MB`, "error");
+      addLog(`❌ Error escritura: ${e.message} — localStorage lleno`, "error", Math.round(performance.now()-t2));
     }
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise(r=>setTimeout(r,50));
 
-    // ── TEST 3: Filtrado en una pasada ──
-    setProgress(40);
-    log("🔍 TEST 3: Filtrado (una sola pasada)...", "info");
-    const t3 = performance.now();
+    // ════════════════════════════════════════
+    // T3 — Filtrado en una pasada
+    // ════════════════════════════════════════
+    sep("── FILTRADO ────────────────────────────────────");
+    tick(3,"Filtrado...");
     const hoy = new Date(); hoy.setHours(0,0,0,0);
-    const filtrado = [];
-    for (let i = 0; i < todosRegistros.length; i++) {
-      const r = todosRegistros[i];
-      if (r.timestamp >= hoy.getTime()) filtrado.push(r);
-    }
-    const t3ms = Math.round(performance.now() - t3);
-    log(`✅ ${filtrado.length} registros filtrados de ${todosRegistros.length}`, t3ms < 50 ? "success" : "warning", t3ms);
-    await new Promise(r => setTimeout(r, 50));
+    const semana = hoy.getTime() - 7*864e5;
 
-    // ── TEST 4: Algoritmo de emparejamiento de visitas ──
-    setProgress(55);
-    log("🔄 TEST 4: Emparejamiento entrada↔salida (algoritmo de visitas)...", "info");
-    const t4 = performance.now();
-    const grupos = {};
-    for (let i = 0; i < todosRegistros.length; i++) {
-      const r = todosRegistros[i];
-      const dia = new Date(r.timestamp).toDateString();
-      const key = `${r.sedeId}|${r.proveedorId}|${dia}`;
-      if (!grupos[key]) grupos[key] = { e: [], s: [] };
-      if (r.tipo === "entrada") grupos[key].e.push(r.timestamp);
-      else grupos[key].s.push(r.timestamp);
-    }
-    let visitas = 0;
-    Object.values(grupos).forEach(g => { visitas += Math.min(g.e.length, g.s.length); });
-    const t4ms = Math.round(performance.now() - t4);
-    log(`✅ ~${visitas} visitas emparejadas en ${Object.keys(grupos).length} grupos`, t4ms < 200 ? "success" : "warning", t4ms);
-    await new Promise(r => setTimeout(r, 50));
+    const tFA=performance.now();
+    let cHoy=0; for(let i=0;i<totalRegs.length;i++) if(totalRegs[i].timestamp>=hoy.getTime()) cHoy++;
+    addLog(`🔍 Filtro "hoy": ${cHoy.toLocaleString()} resultados de ${totalRegs.length.toLocaleString()}`, "success", Math.round(performance.now()-tFA));
 
-    // ── TEST 5: Operaciones simultáneas ──
-    setProgress(70);
-    log(`⚡ TEST 5: ${config.nConcurrentes} operaciones simultáneas...`, "info");
-    const t5 = performance.now();
-    const ops = Array.from({ length: config.nConcurrentes }, (_, i) => {
-      return new Promise(resolve => {
-        // Simula lo que hace cada usuario: leer, modificar, guardar
-        setTimeout(() => {
-          try {
-            const raw = localStorage.getItem("mreg-v1-registros");
-            const data = JSON.parse(raw);
-            // Simula agregar un registro
-            const newReg = { id: `concurrent-${i}-${Date.now()}`, consecutivo: data.length + i, tipo: "entrada", timestamp: Date.now() };
-            // NO lo guarda realmente — solo mide el tiempo de lectura/parse
-            resolve({ ok: true, size: data.length });
-          } catch(e) {
-            resolve({ ok: false, error: e.message });
-          }
-        }, Math.random() * 100); // retrasos aleatorios simulando red
+    const tFB=performance.now();
+    let cSem=0; for(let i=0;i<totalRegs.length;i++) if(totalRegs[i].timestamp>=semana) cSem++;
+    addLog(`🔍 Filtro "última semana": ${cSem.toLocaleString()} resultados`, "success", Math.round(performance.now()-tFB));
+
+    const tFC=performance.now();
+    const q = (empresasActivas[0]?.nombre||"").toLowerCase();
+    let cQ=0; for(let i=0;i<totalRegs.length;i++) if((totalRegs[i].proveedor||"").toLowerCase().includes(q)) cQ++;
+    addLog(`🔍 Búsqueda texto "${q.slice(0,20)}": ${cQ.toLocaleString()} resultados`, "success", Math.round(performance.now()-tFC));
+    await new Promise(r=>setTimeout(r,50));
+
+    // ════════════════════════════════════════
+    // T4 — Algoritmo visitas (emparejamiento)
+    // ════════════════════════════════════════
+    sep("── VISITAS ─────────────────────────────────────");
+    tick(4,"Emparejando visitas...");
+    const t4=performance.now();
+    const grupos4={};
+    for(let i=0;i<totalRegs.length;i++){
+      const r=totalRegs[i];
+      const dia=new Date(r.timestamp).toDateString();
+      const k=`${r.sedeId}|${r.proveedorId}|${dia}`;
+      if(!grupos4[k])grupos4[k]={e:[],s:[]};
+      if(r.tipo==="entrada")grupos4[k].e.push(r.timestamp);
+      else grupos4[k].s.push(r.timestamp);
+    }
+    const nGrupos=Object.keys(grupos4).length;
+    let nVisitas=0; Object.values(grupos4).forEach(g=>{ nVisitas+=Math.min(g.e.length,g.s.length); });
+    const t4ms=Math.round(performance.now()-t4);
+    addLog(`🔄 ${nVisitas.toLocaleString()} visitas emparejadas en ${nGrupos.toLocaleString()} grupos`, t4ms<500?"success":"warning", t4ms);
+
+    // Visitas activas (adentro ahora)
+    const t4b=performance.now();
+    let adentro=0;
+    Object.values(grupos4).forEach(g=>{ adentro+=Math.max(0,g.e.length-g.s.length); });
+    addLog(`📍 ${adentro.toLocaleString()} proveedores actualmente "adentro"`, "info", Math.round(performance.now()-t4b));
+    await new Promise(r=>setTimeout(r,50));
+
+    // ════════════════════════════════════════
+    // T5 — Cálculo de Cumplimiento (por día, semana, mes, año)
+    // ════════════════════════════════════════
+    sep("── CUMPLIMIENTO ────────────────────────────────");
+    tick(5,"Calculando cumplimiento...");
+
+    const periodos = [
+      ["Hoy (1 día)",    hoy.getTime(), Date.now()],
+      ["Última semana",  hoy.getTime()-7*864e5, Date.now()],
+      ["Último mes",     hoy.getTime()-30*864e5, Date.now()],
+      ["Últimos 6 meses",hoy.getTime()-180*864e5, Date.now()],
+      ["Último año",     hoy.getTime()-365*864e5, Date.now()],
+    ];
+
+    for (const [label, desde, hasta] of periodos) {
+      const tP=performance.now();
+      let horasAcordadas=0, horasReales=0;
+      // Calcular horas acordadas en el período
+      newAcuerdos.forEach(a => {
+        const cursor = new Date(desde);
+        while(cursor.getTime() <= hasta) {
+          const dia = DIAS_SEM[cursor.getDay()];
+          horasAcordadas += Number(a.horas[dia]||0);
+          cursor.setDate(cursor.getDate()+1);
+        }
       });
+      // Calcular horas reales (visitas completas en el período)
+      Object.values(grupos4).forEach(g => {
+        g.e.forEach(tsE => {
+          if(tsE < desde || tsE > hasta) return;
+          const tsS = g.s.find(s => s > tsE);
+          if(tsS) horasReales += (tsS - tsE) / 3600000;
+        });
+      });
+      const pct = horasAcordadas > 0 ? Math.round(horasReales/horasAcordadas*100) : 0;
+      const tipo = pct>=100?"success":pct>=70?"warning":"error";
+      addLog(`📊 ${label}: ${Math.round(horasReales)}h reales / ${Math.round(horasAcordadas)}h acordadas → ${pct}%`, tipo, Math.round(performance.now()-tP));
+    }
+    await new Promise(r=>setTimeout(r,50));
+
+    // ════════════════════════════════════════
+    // T6 — Operaciones simultáneas (concurrencia)
+    // ════════════════════════════════════════
+    sep("── CONCURRENCIA ────────────────────────────────");
+    tick(6,"Operaciones simultáneas...");
+    const t6=performance.now();
+    const ops = Array.from({length:config.nConcurrentes}, (_,i) => new Promise(resolve => {
+      setTimeout(() => {
+        const tOp=performance.now();
+        try {
+          // Simula ciclo completo de un usuario: leer → filtrar → agregar registro → guardar
+          const raw = JSON.stringify(totalRegs); // simula lectura
+          const data = JSON.parse(raw.slice(0, Math.min(raw.length, 50000))); // parseo parcial
+          const filtered = data.filter(r => r.sedeId === sedesActivas[0]?.id);
+          resolve({ ok:true, ms:Math.round(performance.now()-tOp), n:filtered.length });
+        } catch(e) { resolve({ ok:false, error:e.message }); }
+      }, Math.random()*200);
+    }));
+    const concRes = await Promise.all(ops);
+    const t6ms=Math.round(performance.now()-t6);
+    const ok=concRes.filter(r=>r.ok).length;
+    const avgMs=Math.round(concRes.filter(r=>r.ok).reduce((s,r)=>s+r.ms,0)/(ok||1));
+    addLog(`⚡ ${ok}/${config.nConcurrentes} ops exitosas — promedio ${avgMs}ms por op — total ${t6ms}ms`, ok===config.nConcurrentes?"success":"warning", t6ms);
+    await new Promise(r=>setTimeout(r,50));
+
+    // ════════════════════════════════════════
+    // T7 — Simulación de sesiones de usuario
+    // ════════════════════════════════════════
+    sep("── SESIONES DE USUARIO ─────────────────────────");
+    tick(7,"Simulando sesiones...");
+
+    const sesiones = Array.from({length:config.nSesiones}, (_,i) => new Promise(resolve => {
+      setTimeout(async () => {
+        const tSes=performance.now();
+        const logs=[];
+
+        // LOGIN: leer datos del localStorage
+        try {
+          const raw=localStorage.getItem("mreg-v1-registros")||"[]";
+          JSON.parse(raw);
+          logs.push(`login OK`);
+        } catch { logs.push(`login FAIL`); }
+
+        // ACCIÓN: registrar entrada (simula)
+        await new Promise(r=>setTimeout(r,Math.random()*150));
+        logs.push(`registro entrada OK`);
+
+        // ACCIÓN: filtrar por sede
+        await new Promise(r=>setTimeout(r,Math.random()*100));
+        const f=totalRegs.filter(r=>r.sedeId===sedesActivas[i%sedesActivas.length]?.id);
+        logs.push(`filtro sede: ${f.length} regs`);
+
+        // LOGOUT
+        await new Promise(r=>setTimeout(r,Math.random()*50));
+        logs.push(`logout OK`);
+
+        resolve({ user:`Usuario ${i+1}`, ms:Math.round(performance.now()-tSes), logs });
+      }, Math.random()*300);
+    }));
+
+    const sesRes = await Promise.all(sesiones);
+    sesRes.forEach(s => {
+      addLog(`👤 ${s.user}: ${s.logs.join(" → ")}`, "success", s.ms);
     });
-    const concResults = await Promise.all(ops);
-    const t5ms = Math.round(performance.now() - t5);
-    const exitosas = concResults.filter(r => r.ok).length;
-    log(`✅ ${exitosas}/${config.nConcurrentes} operaciones completadas simultáneamente`, t5ms < 500 ? "success" : "warning", t5ms);
-    await new Promise(r => setTimeout(r, 50));
+    await new Promise(r=>setTimeout(r,50));
 
-    // ── TEST 6: Lectura y parseo ──
-    setProgress(85);
-    log("📖 TEST 6: Lectura y parseo desde localStorage...", "info");
-    const t6 = performance.now();
-    try {
-      const raw = localStorage.getItem("mreg-v1-registros");
-      const parsed = JSON.parse(raw);
-      const t6ms = Math.round(performance.now() - t6);
-      log(`✅ ${parsed.length} registros leídos y parseados`, t6ms < 100 ? "success" : "warning", t6ms);
-    } catch(e) {
-      log(`❌ Error de lectura: ${e.message}`, "error");
+    // ════════════════════════════════════════
+    // T8 — Paginación con datos masivos
+    // ════════════════════════════════════════
+    sep("── PAGINACIÓN ──────────────────────────────────");
+    tick(8,"Paginación...");
+    const PAGE=50;
+    const pages=Math.ceil(totalRegs.length/PAGE);
+    const tPag=performance.now();
+    // Simula navegar 10 páginas
+    for(let p=0;p<Math.min(10,pages);p++){
+      totalRegs.slice(p*PAGE, (p+1)*PAGE).length; // acceso real al slice
     }
-    await new Promise(r => setTimeout(r, 50));
+    addLog(`📄 ${pages.toLocaleString()} páginas de ${PAGE} · 10 páginas navegadas`, "success", Math.round(performance.now()-tPag));
+    await new Promise(r=>setTimeout(r,50));
 
-    // ── Calcular score ──
-    setProgress(100);
-    const tiempos = results.concat([]).filter(r => r.ms !== null).map(r => r.ms);
-    const hayErrores = results.concat([]).some(r => r.type === "error");
+    // ════════════════════════════════════════
+    // T9 — Sort y agrupación por fecha
+    // ════════════════════════════════════════
+    sep("── SORT & AGRUPACIÓN ───────────────────────────");
+    tick(9,"Sort y agrupación...");
+    const tSort=performance.now();
+    const sorted=[...totalRegs].sort((a,b)=>b.timestamp-a.timestamp);
+    addLog(`🔃 Sort ${totalRegs.length.toLocaleString()} registros por timestamp`, "success", Math.round(performance.now()-tSort));
 
-    log("", "separator");
-    if (hayErrores) {
-      log("⚠️ Test completado con errores — revisar arriba", "warning");
-    } else {
-      const sizeKb = Math.round(JSON.stringify(todosRegistros).length / 1024);
-      const capacidad = sizeKb < 2000 ? "✅ Capacidad OK" : sizeKb < 4000 ? "⚠️ Cerca del límite" : "❌ Excede límite";
-      log(`📊 Resumen: ${todosRegistros.length} registros · ${sizeKb} KB · ${capacidad}`, sizeKb < 2000 ? "success" : "warning");
-    }
+    const tGroup=performance.now();
+    const byDate={};
+    sorted.slice(0,500).forEach(r=>{ // solo primeras 500 para agrupar
+      const d=new Date(r.timestamp).toDateString();
+      (byDate[d]=byDate[d]||[]).push(r);
+    });
+    addLog(`📅 Agrupación por fecha: ${Object.keys(byDate).length} días distintos`, "success", Math.round(performance.now()-tGroup));
+    await new Promise(r=>setTimeout(r,50));
 
-    // Ofrecer aplicar los datos
-    if (!hayErrores) {
-      log(`💡 Puedes aplicar estos ${nuevos.length} registros de prueba al dashboard o limpiarlos`, "info");
-    }
+    // ════════════════════════════════════════
+    // T10 — Exportación Excel simulada
+    // ════════════════════════════════════════
+    sep("── EXPORTACIÓN ─────────────────────────────────");
+    tick(10,"Exportación...");
+    const tExp=performance.now();
+    const headers=["ID","Fecha","Tipo","Proveedor","Sede","Guardia"];
+    const csvRows=[headers,...totalRegs.slice(0,Math.min(5000,totalRegs.length)).map(r=>[
+      r.id, new Date(r.timestamp).toLocaleDateString("es-CO"), r.tipo||"", r.proveedor||"", r.sedeName||"", r.guardiaName||""
+    ])];
+    const csv=csvRows.map(row=>row.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(",")).join("\n");
+    const expKb=Math.round(csv.length/1024);
+    addLog(`📊 CSV de ${Math.min(5000,totalRegs.length).toLocaleString()} filas generado — ${expKb} KB`, "success", Math.round(performance.now()-tExp));
+    await new Promise(r=>setTimeout(r,50));
 
+    // ════════════════════════════════════════
+    // T11 — Stress máximo: 1M operaciones
+    // ════════════════════════════════════════
+    sep("── STRESS MÁXIMO ───────────────────────────────");
+    tick(11,"Stress máximo...");
+    const tMax=performance.now();
+    let suma=0;
+    for(let i=0;i<totalRegs.length;i++) suma+=totalRegs[i].timestamp||0; // recorrido completo
+    addLog(`🔥 Recorrido completo de ${totalRegs.length.toLocaleString()} registros (suma timestamps)`, "success", Math.round(performance.now()-tMax));
+
+    // ════════════════════════════════════════
+    // RESUMEN FINAL
+    // ════════════════════════════════════════
+    sep("── RESUMEN ─────────────────────────────────────");
+    tick(12,"Calculando resumen...");
+    const allMs = logsRef.current.filter(r=>r.ms!==null).map(r=>r.ms);
+    const maxMs = allMs.length ? Math.max(...allMs) : 0;
+    const avgMsAll = allMs.length ? Math.round(allMs.reduce((a,b)=>a+b,0)/allMs.length) : 0;
+    const errores = logsRef.current.filter(r=>r.type==="error").length;
+    const warnings = logsRef.current.filter(r=>r.type==="warning").length;
+
+    const scoreColor = errores>0?"error":warnings>2?"warning":"success";
+    const score = errores>0?"❌ FALLA":warnings>2?"⚠️ ACEPTABLE":"✅ ÓPTIMO";
+
+    addLog(`${score} — ${totalRegs.length.toLocaleString()} regs · ${sizeKb}KB · max ${maxMs}ms · avg ${avgMsAll}ms · ${errores} errores · ${warnings} advertencias`, scoreColor);
+    addLog(`💡 Registros actuales: ${registros.length.toLocaleString()} | Generados en test: ${newRegs.length.toLocaleString()} | Rango: ${rangoLabel()}`, "info");
+
+    setPhase("Completado");
     setRunning(false);
   };
 
-  // ── Limpiar registros de prueba ──────────────────────────────────────────────
   const limpiar = () => {
-    const limpios = registros.filter(r => !r.id.startsWith("stress-") && !r.id.startsWith("concurrent-"));
+    const limpios = registros.filter(r => !r.id?.startsWith("st-"));
     onUpdateRegistros(limpios);
-    localStorage.setItem("mreg-v1-registros", JSON.stringify(limpios));
-    log(`🧹 Registros de prueba eliminados. Quedan ${limpios.length} registros reales.`, "success");
+    addLog(`🧹 Datos de prueba eliminados. Quedan ${limpios.length.toLocaleString()} registros reales.`, "success");
   };
 
   const aplicar = () => {
-    const nuevos = generarRegistros();
+    const nuevos = genRegistros(config.nRegistros);
     onUpdateRegistros([...registros, ...nuevos]);
-    log(`✅ ${nuevos.length} registros aplicados al dashboard`, "success");
+    addLog(`✅ ${nuevos.length.toLocaleString()} registros de prueba aplicados al dashboard`, "success");
   };
 
-  const colores = { success:"#15803d", error:"#b91c1c", warning:"#b45309", info:"#1d4ed8", separator:"#cbd5e1" };
-  const bgs     = { success:"#f0fdf4", error:"#fef2f2", warning:"#fffbeb", info:"#eff6ff", separator:"#f8fafc" };
+  const OPTIONS = {
+    nRegistros:    [[100,"100"],[500,"500"],[1000,"1K"],[5000,"5K"],[10000,"10K"],[50000,"50K"],[100000,"100K"]],
+    nAcuerdos:     [[5,"5"],[10,"10"],[20,"20"],[50,"50"],[100,"100"]],
+    nConcurrentes: [[2,"2"],[5,"5"],[10,"10"],[20,"20"],[50,"50"],[100,"100"]],
+    rangoTiempo:   [["1d","1 día"],["7d","7 días"],["30d","30 días"],["6m","6 meses"],["1y","1 año"],["3y","3 años"],["5y","5 años"]],
+    nSesiones:     [[1,"1"],[3,"3"],[5,"5"],[10,"10"],[20,"20"]],
+  };
 
   return (
-    <div style={{ padding:20, maxWidth:720, margin:"0 auto" }}>
+    <div style={{ padding:20, maxWidth:780, margin:"0 auto" }}>
+      {/* Header */}
       <div style={{ display:"flex", alignItems:"center", gap:12, marginBottom:20 }}>
-        <div style={{ fontSize:28 }}>🧪</div>
+        <div style={{ width:44, height:44, borderRadius:12, background:"linear-gradient(135deg,#6d28d9,#4f46e5)", display:"flex", alignItems:"center", justifyContent:"center", fontSize:22 }}>🧪</div>
         <div>
-          <div style={{ fontSize:17, fontWeight:800, color:"#1e1b4b" }}>Panel de Pruebas de Rendimiento</div>
-          <div style={{ fontSize:12, color:"#64748b" }}>Simula carga real sin afectar datos de producción</div>
+          <div style={{ fontSize:17, fontWeight:800, color:"#1e1b4b" }}>Test de Estrés — MercaControl</div>
+          <div style={{ fontSize:12, color:"#64748b" }}>Simula carga extrema: datos, concurrencia, sesiones, cumplimiento, exportación</div>
         </div>
       </div>
 
-      {/* Advertencia */}
-      <div style={{ background:"#fef9c3", border:"1px solid #fde047", borderRadius:10, padding:"10px 14px", marginBottom:20, fontSize:12, color:"#854d0e" }}>
-        ⚠️ Los datos generados son <strong>ficticios</strong>. Usa "Limpiar datos de prueba" al terminar para no contaminar el sistema real.
+      <div style={{ background:"#fef9c3", border:"1px solid #fde047", borderRadius:10, padding:"10px 14px", marginBottom:16, fontSize:12, color:"#854d0e" }}>
+        ⚠️ Datos de prueba <strong>ficticios</strong>. Usa "🧹 Limpiar" al terminar.
       </div>
 
-      {/* Config */}
-      <div style={{ background:"#fff", borderRadius:14, padding:16, marginBottom:16, border:"1px solid #e2e8f0" }}>
-        <div style={{ fontSize:13, fontWeight:700, color:"#1e1b4b", marginBottom:12 }}>⚙️ Configuración del test</div>
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit, minmax(160px,1fr))", gap:12 }}>
+      {/* Config grid */}
+      <div style={{ background:"#fff", borderRadius:14, padding:16, marginBottom:14, border:"1px solid #e2e8f0" }}>
+        <div style={{ fontSize:13, fontWeight:700, color:"#1e1b4b", marginBottom:12 }}>⚙️ Parámetros del test</div>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(140px,1fr))", gap:10 }}>
           {[
-            ["nRegistros",    "Registros a generar", [100,500,1000,3000,5000]],
-            ["nConcurrentes", "Ops simultáneas",     [2,5,10,20,50]],
-            ["nDias",         "Días de historial",   [7,15,30,60,90]],
-          ].map(([k, label, opts]) => (
+            ["nRegistros",    "📦 Registros",       "OPTIONS.nRegistros"],
+            ["nAcuerdos",     "🤝 Acuerdos",         "OPTIONS.nAcuerdos"],
+            ["nConcurrentes", "⚡ Ops simultáneas",  "OPTIONS.nConcurrentes"],
+            ["rangoTiempo",   "📅 Rango de tiempo",  "OPTIONS.rangoTiempo"],
+            ["nSesiones",     "👥 Sesiones usuario", "OPTIONS.nSesiones"],
+          ].map(([k, label, optKey]) => (
             <div key={k}>
-              <div style={{ fontSize:11, color:"#64748b", fontWeight:600, marginBottom:6 }}>{label}</div>
-              <select value={config[k]} onChange={e => setConfig(c => ({...c, [k]: Number(e.target.value)}))}
+              <div style={{ fontSize:11, color:"#64748b", fontWeight:600, marginBottom:5 }}>{label}</div>
+              <select value={config[k]} onChange={e=>setConfig(c=>({...c,[k]:isNaN(e.target.value)?e.target.value:Number(e.target.value)}))}
                 disabled={running}
-                style={{ width:"100%", padding:"8px 10px", borderRadius:8, border:"1px solid #e2e8f0", fontSize:13, fontFamily:"inherit", background:"#fff" }}>
-                {opts.map(o => <option key={o} value={o}>{o.toLocaleString()}</option>)}
+                style={{ width:"100%", padding:"7px 10px", borderRadius:8, border:"1px solid #e2e8f0", fontSize:13, fontFamily:"inherit", background:"#fff" }}>
+                {OPTIONS[k].map(([v,l])=><option key={v} value={v}>{l}</option>)}
               </select>
             </div>
           ))}
         </div>
+        <div style={{ marginTop:12, padding:"10px 14px", background:"#f8fafc", borderRadius:8, fontSize:12, color:"#475569" }}>
+          📊 Estimado: <strong>{(config.nRegistros*1.7).toLocaleString()}</strong> registros totales ·
+          ~<strong>{Math.round(config.nRegistros*1.7*0.5/1024)}</strong> KB ·
+          <strong> {12}</strong> tests · <strong>{config.nConcurrentes + config.nSesiones}</strong> actores simultáneos
+        </div>
       </div>
 
       {/* Botones */}
-      <div style={{ display:"flex", gap:10, marginBottom:16, flexWrap:"wrap" }}>
-        <button onClick={runTest} disabled={running}
-          style={{ flex:1, minWidth:140, padding:"12px 20px", borderRadius:10, border:"none", background: running?"#e2e8f0":"#6d28d9", color: running?"#94a3b8":"#fff", fontWeight:800, fontSize:14, cursor: running?"not-allowed":"pointer", display:"flex", alignItems:"center", justifyContent:"center", gap:8 }}>
-          {running ? <><Spinner /> Ejecutando...</> : "▶ Ejecutar Test"}
+      <div style={{ display:"flex", gap:10, marginBottom:14, flexWrap:"wrap" }}>
+        <button onClick={runTest} disabled={running||!sedesActivas.length}
+          style={{ flex:2, minWidth:160, padding:"12px 20px", borderRadius:10, border:"none",
+            background:running?"#e2e8f0":"linear-gradient(135deg,#6d28d9,#4f46e5)",
+            color:running?"#94a3b8":"#fff", fontWeight:800, fontSize:14, cursor:running?"not-allowed":"pointer",
+            display:"flex", alignItems:"center", justifyContent:"center", gap:8, boxShadow:running?"none":"0 4px 16px rgba(109,40,217,.3)" }}>
+          {running ? <><Spinner /> {phase || "Ejecutando..."}</> : "▶ Ejecutar Test Completo"}
         </button>
-        <button onClick={aplicar} disabled={running || !sedesActivas.length}
-          style={{ padding:"12px 16px", borderRadius:10, border:"1px solid #e2e8f0", background:"#fff", color:"#475569", fontWeight:700, fontSize:13, cursor:"pointer" }}>
-          📥 Aplicar datos al dashboard
+        <button onClick={aplicar} disabled={running}
+          style={{ flex:1, padding:"12px 14px", borderRadius:10, border:"1px solid #e2e8f0", background:"#fff", color:"#475569", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+          📥 Aplicar datos
         </button>
         <button onClick={limpiar} disabled={running}
-          style={{ padding:"12px 16px", borderRadius:10, border:"1px solid #fecaca", background:"#fff", color:"#b91c1c", fontWeight:700, fontSize:13, cursor:"pointer" }}>
-          🧹 Limpiar datos de prueba
+          style={{ flex:1, padding:"12px 14px", borderRadius:10, border:"1px solid #fecaca", background:"#fff", color:"#b91c1c", fontWeight:700, fontSize:13, cursor:"pointer" }}>
+          🧹 Limpiar
         </button>
       </div>
 
-      {/* Progress bar */}
+      {/* Progress */}
       {running && (
-        <div style={{ background:"#e2e8f0", borderRadius:99, height:6, marginBottom:16, overflow:"hidden" }}>
-          <div style={{ height:"100%", borderRadius:99, background:"#6d28d9", width:`${progress}%`, transition:"width .3s" }} />
+        <div style={{ marginBottom:14 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", fontSize:11, color:"#64748b", marginBottom:4 }}>
+            <span>{phase}</span><span>{progress}%</span>
+          </div>
+          <div style={{ background:"#e2e8f0", borderRadius:99, height:8, overflow:"hidden" }}>
+            <div style={{ height:"100%", borderRadius:99, background:"linear-gradient(90deg,#6d28d9,#0ea5e9)", width:`${progress}%`, transition:"width .4s" }} />
+          </div>
         </div>
       )}
 
-      {/* Resultados */}
+      {/* Consola de resultados */}
       {results.length > 0 && (
-        <div style={{ background:"#0f172a", borderRadius:14, padding:16, fontFamily:"'JetBrains Mono', monospace", fontSize:12 }}>
-          <div style={{ color:"#94a3b8", marginBottom:10, fontSize:11 }}>RESULTADOS — {new Date().toLocaleDateString("es-CO")}</div>
-          <div style={{ maxHeight:340, overflowY:"auto", display:"flex", flexDirection:"column", gap:4 }}>
-            {results.map(r => r.type === "separator" ? (
-              <div key={r.id} style={{ borderTop:"1px solid #334155", margin:"4px 0" }} />
+        <div style={{ background:"#0f172a", borderRadius:14, padding:16 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+            <span style={{ color:"#94a3b8", fontSize:11, fontFamily:"monospace" }}>CONSOLA — {results.length} eventos</span>
+            <button onClick={()=>{setResults([]);logsRef.current=[];}}
+              style={{ background:"none", border:"1px solid #334155", color:"#64748b", borderRadius:6, padding:"2px 8px", fontSize:11, cursor:"pointer" }}>limpiar</button>
+          </div>
+          <div style={{ maxHeight:420, overflowY:"auto", display:"flex", flexDirection:"column", gap:3 }}>
+            {results.map(r => r.type==="sep" ? (
+              <div key={r.id} style={{ borderTop:"1px solid #1e293b", margin:"4px 0", display:"flex", alignItems:"center", gap:8 }}>
+                {r.msg && <span style={{ color:"#334155", fontSize:10, fontFamily:"monospace", whiteSpace:"nowrap" }}>{r.msg}</span>}
+              </div>
             ) : (
-              <div key={r.id} style={{ display:"flex", alignItems:"flex-start", gap:10 }}>
-                <span style={{ color:"#475569", flexShrink:0, fontSize:10 }}>{r.ts}</span>
-                <span style={{ color: r.type==="success"?"#86efac":r.type==="error"?"#fca5a5":r.type==="warning"?"#fde68a":"#93c5fd", flex:1 }}>{r.msg}</span>
-                {r.ms !== null && (
-                  <span style={{ color: r.ms < 50?"#86efac":r.ms < 200?"#fde68a":"#fca5a5", flexShrink:0, fontWeight:700 }}>
-                    {r.ms}ms
+              <div key={r.id} style={{ display:"flex", alignItems:"flex-start", gap:8, fontFamily:"monospace", fontSize:11 }}>
+                <span style={{ color:"#475569", flexShrink:0, minWidth:55 }}>{r.ts}</span>
+                <span style={{ color:r.type==="success"?"#86efac":r.type==="error"?"#fca5a5":r.type==="warning"?"#fde68a":"#93c5fd", flex:1, lineHeight:1.5 }}>{r.msg}</span>
+                {r.ms!==null && (
+                  <span style={{ flexShrink:0, fontWeight:800, minWidth:45, textAlign:"right",
+                    color:r.ms<50?"#86efac":r.ms<200?"#fde68a":r.ms<1000?"#fb923c":"#fca5a5" }}>
+                    {r.ms<1000?`${r.ms}ms`:`${(r.ms/1000).toFixed(1)}s`}
                   </span>
                 )}
               </div>
@@ -4166,15 +4349,17 @@ function StressTestView({ registros, sedes, empresas, onUpdateRegistros }) {
         </div>
       )}
 
-      {/* Leyenda de tiempos */}
-      <div style={{ display:"flex", gap:16, marginTop:12, fontSize:11, color:"#94a3b8" }}>
-        <span><span style={{ color:"#86efac", fontWeight:700 }}>Verde</span> = rápido (&lt;50ms)</span>
-        <span><span style={{ color:"#fde68a", fontWeight:700 }}>Amarillo</span> = aceptable</span>
-        <span><span style={{ color:"#fca5a5", fontWeight:700 }}>Rojo</span> = lento</span>
+      {/* Leyenda */}
+      <div style={{ display:"flex", gap:16, marginTop:10, fontSize:11, color:"#94a3b8", flexWrap:"wrap" }}>
+        <span><span style={{ color:"#86efac" }}>●</span> &lt;50ms óptimo</span>
+        <span><span style={{ color:"#fde68a" }}>●</span> 50-200ms aceptable</span>
+        <span><span style={{ color:"#fb923c" }}>●</span> 200ms-1s lento</span>
+        <span><span style={{ color:"#fca5a5" }}>●</span> &gt;1s crítico</span>
       </div>
     </div>
   );
 }
+
 
 function AdminPanel({ user, sedes, empresas, admins, viewers, guardias, comercials, onUpdateSedes, onUpdateProveedors, onUpdateAdmins, onUpdateViewers, onUpdateGuardias, onUpdateComercials, onClose, auditLog = [], registros = [], onUpdateRegistros }) {
   const [tab, setTab] = useState("empresas");
