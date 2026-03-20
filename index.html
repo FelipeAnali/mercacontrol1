@@ -321,6 +321,9 @@ const SP_HOST        = "https://stcanaveral.sharepoint.com";
 const SP_SITE_PATH   = "";  // vacío = sitio raíz. Ej: "/sites/MiSitio"
 const GRAPH          = "https://graph.microsoft.com/v1.0";
 
+// ── Flag para activar SharePoint — cambiar a true cuando TIC apruebe permisos ──
+const SHAREPOINT_ENABLED = false;
+
 // Nombres de listas en SharePoint (se crean solas si no existen)
 const SP_LISTS = {
   "mreg-v1-registros":  "MercaControl_Registros",
@@ -331,6 +334,7 @@ const SP_LISTS = {
   "mreg-v1-guardias":   "MercaControl_Guardias",
   "mreg-v1-comercials": "MercaControl_Comercials",
   "mreg-v1-acuerdos":   "MercaControl_Acuerdos",
+  "mreg-v1-audit":      "MercaControl_Auditoria",  // ← audit trail en SharePoint
 };
 
 let msalInstance = null;
@@ -2587,10 +2591,21 @@ function AuditoriaView({ auditLog }) {
         </div>
       </div>
 
-      {/* Info banner */}
-      <div style={{ background:"#eff6ff", border:"1px solid #bfdbfe", borderRadius:10, padding:"10px 16px", marginBottom:20, fontSize:13, color:"#1d4ed8" }}>
-        ℹ️ Este registro es de solo lectura. Cuando SharePoint esté activo, quedará en el servidor y nadie podrá borrarlo.
-      </div>
+      {/* Info banner — cambia según estado SharePoint */}
+      {SHAREPOINT_ENABLED ? (
+        <div style={{ background:"#f0fdf4", border:"1px solid #86efac", borderRadius:10, padding:"10px 16px", marginBottom:20, fontSize:13, color:"#15803d" }}>
+          ✅ SharePoint activo — el historial queda guardado en el servidor y no se puede borrar.
+          {log.filter(e => !e.syncedToSP).length > 0 && (
+            <span style={{ marginLeft:8, background:"#fef9c3", color:"#854d0e", borderRadius:6, padding:"2px 8px", fontWeight:700 }}>
+              {log.filter(e => !e.syncedToSP).length} pendientes de sincronizar
+            </span>
+          )}
+        </div>
+      ) : (
+        <div style={{ background:"#fffbeb", border:"1px solid #fcd34d", borderRadius:10, padding:"10px 16px", marginBottom:20, fontSize:13, color:"#92400e" }}>
+          ⚠️ SharePoint <strong>no activo</strong> — el historial vive en este navegador. Cuando TIC apruebe los permisos, cambia <code>SHAREPOINT_ENABLED = true</code> y todo se sincronizará automáticamente.
+        </div>
+      )}
 
       {log.length === 0 ? (
         <div style={{ textAlign:"center", padding:"60px 20px", color:T.muted }}>
@@ -2617,6 +2632,11 @@ function AuditoriaView({ auditLog }) {
                     <span>👤 {e.usuario}</span>
                     <span>📧 {e.email}</span>
                     <span>🕐 {fmtTs(e.timestamp)}</span>
+                    {SHAREPOINT_ENABLED && (
+                      <span style={{ color: e.syncedToSP ? "#15803d" : "#b45309", fontWeight:600 }}>
+                        {e.syncedToSP ? "☁️ En SharePoint" : "⏳ Pendiente SP"}
+                      </span>
+                    )}
                   </div>
                 </div>
               </div>
@@ -4334,13 +4354,31 @@ function App() {
     const entrada = {
       id: `aud-${Date.now()}-${Math.random().toString(36).slice(2,6)}`,
       timestamp: Date.now(),
-      accion,        // "EDITÓ" | "ELIMINÓ" | "CREÓ"
+      accion,           // "EDITÓ" | "ELIMINÓ" | "CREÓ"
       usuario: currentUser?.nombre || "—",
       email: currentUser?.email || "—",
       regId: regId || null,
-      detalle,       // descripción legible del cambio
+      detalle,          // descripción legible del cambio
+      syncedToSP: false, // ← se pone true cuando SharePoint confirme
     };
-    await setAuditLog(prev => [entrada, ...(prev || [])].slice(0, 500)); // máx 500 entradas
+
+    // 1. Siempre guarda local primero (funciona sin SharePoint)
+    await setAuditLog(prev => [entrada, ...(prev || [])].slice(0, 500));
+
+    // 2. Si SharePoint está habilitado, intenta escribir allá también
+    //    Cuando SHAREPOINT_ENABLED = true esto se activa automáticamente
+    if (SHAREPOINT_ENABLED) {
+      try {
+        await spWrite("mreg-v1-audit", entrada);
+        // Marca la entrada como sincronizada en local
+        await setAuditLog(prev => prev.map(e =>
+          e.id === entrada.id ? { ...e, syncedToSP: true } : e
+        ));
+      } catch (err) {
+        console.warn("Audit SharePoint sync failed:", err.message);
+        // No falla silenciosamente — la entrada local sigue existiendo
+      }
+    }
   }, [currentUser, setAuditLog]);
 
   const handleEditRegistro = useCallback(async (updated) => {
